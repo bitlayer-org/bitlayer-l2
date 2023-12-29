@@ -101,7 +101,7 @@ func newObject(db *StateDB, address common.Address, data types.StateAccount) *st
 	return &stateObject{
 		db:             db,
 		address:        address,
-		addrHash:       crypto.Keccak256Hash(address[:]),
+		addrHash:       crypto.HashDataWithCache(nil, address[:]),
 		data:           data,
 		originStorage:  make(Storage),
 		pendingStorage: make(Storage),
@@ -188,7 +188,7 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 	)
 	if s.db.snap != nil {
 		start := time.Now()
-		enc, err = s.db.snap.Storage(s.addrHash, crypto.Keccak256Hash(key.Bytes()))
+		enc, err = s.db.snap.Storage(s.addrHash, crypto.HashDataWithCache(nil, key[:]))
 		if metrics.EnabledExpensive {
 			s.db.SnapshotStorageReads += time.Since(start)
 		}
@@ -317,7 +317,7 @@ func (s *stateObject) updateTrie(db Database) (Trie, error) {
 					s.db.snapStorage[s.addrHash] = storage
 				}
 			}
-			storage[crypto.HashData(hasher, key[:])] = v // v will be nil if it's deleted
+			storage[crypto.HashDataWithCache(hasher, key[:])] = v // v will be nil if it's deleted
 		}
 		usedStorage = append(usedStorage, common.CopyBytes(key[:])) // Copy needed for closure
 	}
