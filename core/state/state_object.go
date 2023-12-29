@@ -108,7 +108,7 @@ func newObject(db *StateDB, address common.Address, acct *types.StateAccount) *s
 	return &stateObject{
 		db:             db,
 		address:        address,
-		addrHash:       crypto.Keccak256Hash(address[:]),
+		addrHash:       crypto.HashDataWithCache(nil, address[:]),
 		origin:         origin,
 		data:           *acct,
 		originStorage:  make(Storage),
@@ -196,7 +196,7 @@ func (s *stateObject) GetCommittedState(key common.Hash) common.Hash {
 	)
 	if s.db.snap != nil {
 		start := time.Now()
-		enc, err = s.db.snap.Storage(s.addrHash, crypto.Keccak256Hash(key.Bytes()))
+		enc, err = s.db.snap.Storage(s.addrHash, crypto.HashDataWithCache(nil, key[:]))
 		if metrics.EnabledExpensive {
 			s.db.SnapshotStorageReads += time.Since(start)
 		}
@@ -330,7 +330,7 @@ func (s *stateObject) updateTrie() (Trie, error) {
 				s.db.storages[s.addrHash] = storage
 			}
 		}
-		khash := crypto.HashData(s.db.hasher, key[:])
+		khash := crypto.HashDataWithCache(s.db.hasher, key[:])
 		storage[khash] = encoded // encoded will be nil if it's deleted
 
 		// Cache the original value of mutated storage slots
