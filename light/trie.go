@@ -142,6 +142,12 @@ func (t *odrTrie) UpdateAccount(address common.Address, acc *types.StateAccount)
 	})
 }
 
+func (t *odrTrie) UpdateAccountWithData(address common.Address, value []byte) error {
+	key := crypto.Keccak256(address.Bytes())
+	return t.do(key, func() error {
+		return t.trie.Update(key, value)
+	})
+}
 func (t *odrTrie) UpdateStorage(_ common.Address, key, value []byte) error {
 	key = crypto.Keccak256(key)
 	return t.do(key, func() error {

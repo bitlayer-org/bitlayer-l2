@@ -91,6 +91,7 @@ type Trie interface {
 	// provided account object with associated algorithm and then updates it
 	// in the trie with provided address.
 	UpdateAccount(address common.Address, account *types.StateAccount) error
+	UpdateAccountWithData(address common.Address, data []byte) error
 
 	// DeleteStorage removes any existing value for key from the trie. If a node
 	// was not found in the database, a trie.MissingNodeError is returned.

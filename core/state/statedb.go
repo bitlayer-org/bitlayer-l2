@@ -22,9 +22,11 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/gopool"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -500,19 +502,38 @@ func (s *StateDB) GetTransientState(addr common.Address, key common.Hash) common
 	return s.transientStorage.Get(addr, key)
 }
 
-//
 // Setting, updating & deleting state object methods.
 //
+// concurrency safe
+func (s *StateDB) preUpdateStateObject(obj *stateObject) {
+	obj.updateTrieConcurrencySafe(s.db)
+
+	// If nothing changed, don't bother with hashing anything
+	if obj.trie != nil {
+		obj.data.Root = obj.trie.Hash()
+	}
+
+	// Encode the account and update the account trie
+	obj.accountRLP, obj.rlpErr = rlp.EncodeToBytes(obj)
+	if s.snap != nil {
+		obj.slimAccountRLP = snapshot.SlimAccountRLP(obj.data.Nonce, obj.data.Balance, obj.data.Root, obj.data.CodeHash)
+	}
+}
 
 // updateStateObject writes the given object to the trie.
 func (s *StateDB) updateStateObject(obj *stateObject) {
+	obj.updateSnapshot()
+
 	// Track the amount of time wasted on updating the account from the trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.AccountUpdates += time.Since(start) }(time.Now())
 	}
-	// Encode the account and update the account trie
 	addr := obj.Address()
-	if err := s.trie.UpdateAccount(addr, &obj.data); err != nil {
+	if obj.rlpErr != nil {
+		panic(fmt.Errorf("can't encode object at %x: %v", addr[:], obj.rlpErr))
+	}
+
+	if err := s.trie.UpdateAccountWithData(addr, obj.accountRLP); err != nil {
 		s.setError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
 	}
 
@@ -521,8 +542,11 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 	// enough to track account updates at commit time, deletions need tracking
 	// at transaction boundary level to ensure we capture state clearing.
 	if s.snap != nil {
-		s.snapAccounts[obj.addrHash] = snapshot.SlimAccountRLP(obj.data.Nonce, obj.data.Balance, obj.data.Root, obj.data.CodeHash)
+		s.snapAccounts[obj.addrHash] = obj.slimAccountRLP
 	}
+
+	// clear rlp result
+	obj.accountRLP, obj.slimAccountRLP, obj.rlpErr = nil, nil, nil
 }
 
 // deleteStateObject removes the given object from the state trie.
@@ -903,10 +927,25 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	// the account prefetcher. Instead, let's process all the storage updates
 	// first, giving the account prefetches just a few more milliseconds of time
 	// to pull useful data from disk.
+	var wg sync.WaitGroup
 	for addr := range s.stateObjectsPending {
 		if obj := s.stateObjects[addr]; !obj.deleted {
-			obj.updateRoot(s.db)
+			obj.finalise(false)
+			wg.Add(1)
+			gopool.Submit(func() {
+				s.preUpdateStateObject(obj)
+				wg.Done()
+			})
 		}
+	}
+	// Track the amount of time wasted on updating the storage trie and getting rlp of the account
+	var start time.Time
+	if metrics.EnabledExpensive {
+		start = time.Now()
+	}
+	wg.Wait()
+	if metrics.EnabledExpensive {
+		s.StorageUpdates += time.Since(start)
 	}
 	// Now we're about to start to write changes to the trie. The trie is so far
 	// _untouched_. We can check with the prefetcher, if it can give us a trie

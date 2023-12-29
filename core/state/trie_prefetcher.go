@@ -75,7 +75,7 @@ func newTriePrefetcher(db Database, root common.Hash, namespace string) *triePre
 // and reports the stats to the metrics subsystem.
 func (p *triePrefetcher) close() {
 	for _, fetcher := range p.fetchers {
-		fetcher.abort() // safe to do multiple times
+		fetcher.abort(false) // safe to do multiple times
 
 		if metrics.Enabled {
 			if fetcher.root == p.root {
@@ -177,7 +177,7 @@ func (p *triePrefetcher) trie(owner common.Hash, root common.Hash) Trie {
 	}
 	// Interrupt the prefetcher if it's by any chance still running and return
 	// a copy of any pre-loaded trie.
-	fetcher.abort() // safe to do multiple times
+	fetcher.abort(true) // safe to do multiple times
 
 	trie := fetcher.peek()
 	if trie == nil {
@@ -215,10 +215,11 @@ type subfetcher struct {
 	tasks [][]byte   // Items queued up for retrieval
 	lock  sync.Mutex // Lock protecting the task queue
 
-	wake chan struct{}  // Wake channel if a new task is scheduled
-	stop chan struct{}  // Channel to interrupt processing
-	term chan struct{}  // Channel to signal interruption
-	copy chan chan Trie // Channel to request a copy of the current trie
+	wake          chan struct{}  // Wake channel if a new task is scheduled
+	stop          chan struct{}  // Channel to interrupt processing
+	closeStopLock sync.Mutex     // for cocurrency
+	term          chan struct{}  // Channel to signal interruption
+	copy          chan chan Trie // Channel to request a copy of the current trie
 
 	seen map[string]struct{} // Tracks the entries already loaded
 	dups int                 // Number of duplicate preload tasks
@@ -277,8 +278,13 @@ func (sf *subfetcher) peek() Trie {
 }
 
 // abort interrupts the subfetcher immediately. It is safe to call abort multiple
-// times but it is not thread safe.
-func (sf *subfetcher) abort() {
+// times. it is thread safe when correncySupport is true
+func (sf *subfetcher) abort(correncySupport bool) {
+	if correncySupport {
+		sf.closeStopLock.Lock()
+		defer sf.closeStopLock.Unlock()
+	}
+
 	select {
 	case <-sf.stop:
 	default:

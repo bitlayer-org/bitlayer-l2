@@ -169,6 +169,15 @@ func (t *StateTrie) UpdateAccount(address common.Address, acc *types.StateAccoun
 	return nil
 }
 
+func (t *StateTrie) UpdateAccountWithData(address common.Address, data []byte) error {
+	hk := t.hashKey(address.Bytes())
+	if err := t.trie.Update(hk, data); err != nil {
+		return err
+	}
+	t.getSecKeyCache()[string(hk)] = address.Bytes()
+	return nil
+}
+
 // MustDelete removes any existing value for key from the trie. This function
 // will omit any encountered error but just print out an error message.
 func (t *StateTrie) MustDelete(key []byte) {

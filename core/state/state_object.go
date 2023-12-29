@@ -80,6 +80,15 @@ type stateObject struct {
 	dirtyCode bool // true if the code was updated
 	suicided  bool
 	deleted   bool
+
+	// only used between StateDB.preUpdateStateObject and StateDB.updateStateObject
+	accountRLP     []byte
+	rlpErr         error
+	slimAccountRLP []byte
+
+	// only used between updateTrieConcurrencySafe and updateSnapshot
+	snapStorage map[common.Hash][]byte
+	usedStorage [][]byte
 }
 
 // empty returns whether the account is considered empty.
@@ -273,17 +282,30 @@ func (s *stateObject) updateTrie(db Database) (Trie, error) {
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageUpdates += time.Since(start) }(time.Now())
 	}
+	tr, err := s.updateTrieConcurrencySafe(db)
+	if err == nil {
+		s.updateSnapshot()
+		return tr, nil
+	} else {
+		return nil, err
+	}
+}
+
+func (s *stateObject) updateTrieConcurrencySafe(db Database) (Trie, error) {
+	if len(s.pendingStorage) == 0 {
+		return s.trie, nil
+	}
+
 	// The snapshot storage map for the object
-	var (
-		storage map[common.Hash][]byte
-		hasher  = s.db.hasher
-	)
+	var storage map[common.Hash][]byte
+	// Insert all the pending updates into the trie
 	tr, err := s.getTrie(db)
 	if err != nil {
 		s.db.setError(err)
 		return nil, err
 	}
-	// Insert all the pending updates into the trie
+	hasher := crypto.NewKeccakState()
+
 	usedStorage := make([][]byte, 0, len(s.pendingStorage))
 	for key, value := range s.pendingStorage {
 		// Skip noop changes, persist actual changes
@@ -314,20 +336,31 @@ func (s *stateObject) updateTrie(db Database) (Trie, error) {
 				// Retrieve the old storage map, if available, create a new one otherwise
 				if storage = s.db.snapStorage[s.addrHash]; storage == nil {
 					storage = make(map[common.Hash][]byte)
-					s.db.snapStorage[s.addrHash] = storage
 				}
 			}
-			storage[crypto.HashDataWithCache(hasher, key[:])] = v // v will be nil if it's deleted
+			storage[crypto.HashDataWithCache(hasher, key[:])] = v // v will be nil if value is 0x00
 		}
 		usedStorage = append(usedStorage, common.CopyBytes(key[:])) // Copy needed for closure
 	}
-	if s.db.prefetcher != nil {
-		s.db.prefetcher.used(s.addrHash, s.data.Root, usedStorage)
-	}
+	s.snapStorage = storage
+	s.usedStorage = usedStorage
+
 	if len(s.pendingStorage) > 0 {
 		s.pendingStorage = make(Storage)
 	}
 	return tr, nil
+}
+
+// update s.db.snapStorage and s.db.prefetcher.used
+func (s *stateObject) updateSnapshot() {
+	if s.snapStorage != nil {
+		s.db.snapStorage[s.addrHash] = s.snapStorage
+		s.snapStorage = nil
+	}
+	if s.db.prefetcher != nil && s.usedStorage != nil {
+		s.db.prefetcher.used(s.addrHash, s.data.Root, s.usedStorage)
+		s.usedStorage = nil
+	}
 }
 
 // UpdateRoot sets the trie root to the current root hash of. An error
