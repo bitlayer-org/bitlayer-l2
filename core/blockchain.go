@@ -1345,14 +1345,20 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	//
 	// Note all the components of block(td, hash->number map, header, body, receipts)
 	// should be written atomically. BlockBatch is used for containing all components.
-	blockBatch := bc.db.NewBatch()
-	rawdb.WriteTd(blockBatch, block.Hash(), block.NumberU64(), externTd)
-	rawdb.WriteBlock(blockBatch, block)
-	rawdb.WriteReceipts(blockBatch, block.Hash(), block.NumberU64(), receipts)
-	rawdb.WritePreimages(blockBatch, state.Preimages())
-	if err := blockBatch.Write(); err != nil {
-		log.Crit("Failed to write block into disk", "err", err)
-	}
+	var waitBlockBatchWrite sync.WaitGroup
+	waitBlockBatchWrite.Add(1)
+	defer waitBlockBatchWrite.Wait()
+	go func() {
+		blockBatch := bc.db.NewBatch()
+		rawdb.WriteTd(blockBatch, block.Hash(), block.NumberU64(), externTd)
+		rawdb.WriteBlock(blockBatch, block)
+		rawdb.WriteReceipts(blockBatch, block.Hash(), block.NumberU64(), receipts)
+		rawdb.WritePreimages(blockBatch, state.Preimages())
+		if err := blockBatch.Write(); err != nil {
+			log.Crit("Failed to write block into disk", "err", err)
+		}
+		waitBlockBatchWrite.Done()
+	}()
 	// Commit all cached state changes into underlying memory database.
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
@@ -1410,6 +1416,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		}
 		bc.triedb.Dereference(root)
 	}
+
 	return nil
 }
 
@@ -1540,7 +1547,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals, setHead bool)
 	}
 
 	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
-	SenderCacher.RecoverFromBlocks(types.MakeSigner(bc.chainConfig, chain[0].Number()), chain)
+	go SenderCacher.RecoverFromBlocks(types.MakeSigner(bc.chainConfig, chain[0].Number()), chain)
 
 	var (
 		stats     = insertStats{startTime: mclock.Now()}
