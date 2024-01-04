@@ -71,7 +71,7 @@ func CreatingBloomParallel(wg *sync.WaitGroup) ModifyProcessOptionFunc {
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, types.InternalTxs, uint64, error) {
 	var (
 		receipts    types.Receipts
 		usedGas     = new(uint64)
@@ -80,11 +80,14 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		blockNumber = block.Number()
 		allLogs     []*types.Log
 		gp          = new(GasPool).AddGas(block.GasLimit())
+		tracer      *vm.ActionLogger
+		internalTxs types.InternalTxs
 	)
 	// Mutate the block and state according to any hard-fork specs
 	if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
 		misc.ApplyDAOHardFork(statedb)
 	}
+
 	var (
 		context = NewEVMBlockContext(header, p.bc, nil)
 		vmenv   = vm.NewEVM(context, vm.TxContext{}, statedb, p.config, cfg)
@@ -93,6 +96,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
+
+	if cfg.TraceAction {
+		tracer = vm.NewActionLogger()
+		cfg.Tracer = tracer
+	}
+
 	// preload from and to of txs
 	statedb.PreloadAccounts(block, signer)
 
@@ -108,20 +117,36 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	for i, tx := range block.Transactions() {
 		msg, err := TransactionToMessage(tx, signer, header.BaseFee)
 		if err != nil {
-			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
+			return nil, nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
 		statedb.SetTxContext(tx.Hash(), i)
 		receipt, err := applyTransaction(msg, p.config, gp, statedb, blockNumber, blockHash, tx, usedGas, vmenv, CreatingBloomParallel(&bloomWg))
 		if err != nil {
-			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
+			return nil, nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
+
+		if cfg.TraceAction {
+			actions, _ := tracer.GetResult()
+			if len(actions) > 0 {
+				if receipt.Status == types.ReceiptStatusFailed {
+					for _, action := range actions {
+						action.Success = false
+					}
+				}
+				internalTxs = append(internalTxs, &types.InternalTx{
+					TxHash:  tx.Hash(),
+					Actions: actions,
+				})
+			}
+			tracer.Clear()
+		}
 	}
 	// Fail if Shanghai not enabled and len(withdrawals) is non-zero.
 	withdrawals := block.Withdrawals()
 	if len(withdrawals) > 0 && !p.config.IsShanghai(block.Number(), block.Time()) {
-		return nil, nil, 0, errors.New("withdrawals before shanghai")
+		return nil, nil, nil, 0, errors.New("withdrawals before shanghai")
 	}
 
 	bloomWg.Wait()
@@ -130,7 +155,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), withdrawals)
 
-	return receipts, allLogs, *usedGas, nil
+	return receipts, allLogs, internalTxs, *usedGas, nil
 }
 
 func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM, modOptions ...ModifyProcessOptionFunc) (*types.Receipt, error) {

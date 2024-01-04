@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"runtime"
 	"sync"
@@ -165,6 +166,15 @@ type TraceCallConfig struct {
 	StateOverrides *ethapi.StateOverride
 	BlockOverrides *ethapi.BlockOverrides
 	TxIndex        *hexutil.Uint
+}
+
+// ActionConfig is the config for actionTrace API. It holds one more
+// field to override the state for tracing.
+type ActionConfig struct {
+	From     *common.Address
+	To       *common.Address
+	OpCode   *string
+	MinValue *big.Int
 }
 
 // StdTraceConfig holds extra parameters to standard-json trace functions.
@@ -977,6 +987,125 @@ func (api *API) traceTx(ctx context.Context, message *core.Message, txctx *Conte
 		return nil, fmt.Errorf("tracing failed: %w", err)
 	}
 	return tracer.GetResult()
+}
+
+// TraceActionByBlockHash return actions of internal txs by block hash
+func (api *API) TraceActionByBlockHash(ctx context.Context, hash common.Hash) (types.InternalTxs, error) {
+	block, err := api.backend.BlockByHash(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if block == nil {
+		return nil, fmt.Errorf("block %#x not found", hash)
+	}
+	return api.getInnerTx(block)
+}
+
+// TraceActionByBlockNumber return actions of internal txs by block number
+func (api *API) TraceActionByBlockNumber(ctx context.Context, number rpc.BlockNumber, filter *ActionConfig) (types.InternalTxs, error) {
+	block, err := api.blockByNumber(ctx, number)
+	if err != nil {
+		return nil, err
+	}
+
+	// Trace the block if it was found
+	if block == nil {
+		return nil, fmt.Errorf("block #%d not found", number)
+	}
+
+	iTx, err := api.getInnerTx(block)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]*types.InternalTx, 0)
+	for _, tx := range iTx {
+		tx.Actions = api.filterAction(tx.Actions, filter)
+		if len(tx.Actions) > 0 {
+			res = append(res, tx)
+		}
+	}
+
+	return res, nil
+}
+
+// TraceActionByBlockNumber return actions of internal txs by tx hash
+func (api *API) TraceActionByTxHash(ctx context.Context, hash common.Hash, filter *ActionConfig) (*types.InternalTx, error) {
+	tx, blkHash, _, _, err := api.backend.GetTransaction(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if tx == nil {
+		return nil, fmt.Errorf("tx #%s not found", hash)
+	}
+
+	block, err := api.backend.BlockByHash(ctx, blkHash)
+	if err != nil {
+		return nil, err
+	}
+
+	// Trace the block if it was found
+	if block == nil {
+		return nil, fmt.Errorf("block #%s not found", hash)
+	}
+
+	txs, err := api.getInnerTx(block)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, t := range txs {
+		if t.TxHash == hash {
+			t.Actions = api.filterAction(t.Actions, filter)
+			return t, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func (api *API) filterAction(actions []*types.Action, filter *ActionConfig) []*types.Action {
+	if filter == nil {
+		return actions
+	}
+
+	res := make([]*types.Action, 0, len(actions))
+
+	for _, act := range actions {
+		if filter.OpCode != nil && *filter.OpCode != act.OpCode {
+			continue
+		}
+
+		if filter.MinValue != nil && filter.MinValue.Cmp(act.Value) > 0 {
+			continue
+		}
+
+		if filter.From != nil && *filter.From != act.From {
+			continue
+		}
+
+		if filter.To != nil && *filter.To != act.To {
+			continue
+		}
+
+		res = append(res, act)
+	}
+
+	return res
+}
+
+// getInnerTx returns internal txs
+func (api *API) getInnerTx(block *types.Block) (types.InternalTxs, error) {
+	txs := rawdb.ReadInternalTxs(api.backend.ChainDb(), block.Hash(), block.NumberU64())
+
+	for _, tx := range txs {
+		tx.BlockHash = block.Hash()
+		tx.BlockNumber = block.Number()
+	}
+
+	return txs, nil
 }
 
 // APIs return the collection of RPC services the tracer package offers.

@@ -908,6 +908,11 @@ Please note that --` + MetricsHTTPFlag.Name + ` must be set to start the server.
 		Value:    metrics.DefaultConfig.InfluxDBOrganization,
 		Category: flags.MetricsCategory,
 	}
+	// TraceActionFlag is the flag for internal tx
+	TraceActionFlag = &cli.BoolFlag{
+		Name:  "traceaction",
+		Usage: "Trace internal tx call/create/suicide action",
+	}
 )
 
 var (
@@ -1587,8 +1592,11 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
 	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, GoerliFlag, SepoliaFlag, HoleskyFlag)
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
-
 	// Set configurations from CLI flags
+
+	if ctx.IsSet(TraceActionFlag.Name) {
+		cfg.TraceAction = ctx.Bool(TraceActionFlag.Name)
+	}
 	setEtherbase(ctx, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
