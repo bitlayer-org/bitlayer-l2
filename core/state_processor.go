@@ -87,7 +87,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		misc.ApplyDAOHardFork(statedb)
 	}
 
-	if cfg.TraceAction {
+	if cfg.TraceAction > 0 {
 		tracer = vm.NewActionLogger()
 		cfg.Tracer = tracer
 	}
@@ -121,7 +121,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 
-		if cfg.TraceAction {
+		if cfg.TraceAction > 0 {
 			actions, _ := tracer.GetResult()
 			if len(actions) > 0 {
 				if receipt.Status == types.ReceiptStatusFailed {
@@ -129,10 +129,25 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 						action.Success = false
 					}
 				}
-				internalTxs = append(internalTxs, &types.InternalTx{
-					TxHash:  tx.Hash(),
-					Actions: actions,
-				})
+				if cfg.TraceAction == 1 {
+					actionsTmp := make([]*types.Action, 0)
+					for i := 0; i < len(actions); i++ {
+						if actions[i].Value != nil && actions[i].Value.Cmp(big.NewInt(0)) != 0 {
+							actionsTmp = append(actionsTmp, actions[i])
+						}
+					}
+					if len(actionsTmp) > 0 {
+						internalTxs = append(internalTxs, &types.InternalTx{
+							TxHash:  tx.Hash(),
+							Actions: actionsTmp,
+						})
+					}
+				} else {
+					internalTxs = append(internalTxs, &types.InternalTx{
+						TxHash:  tx.Hash(),
+						Actions: actions,
+					})
+				}
 			}
 			tracer.Clear()
 		}

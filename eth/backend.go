@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/big"
 	"runtime"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -203,7 +204,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Info("is TraceAction enabled", "TraceAction", config.TraceAction)
+	log.Info("is TraceAction enabled", "TraceAction", strconv.Itoa(config.TraceAction))
 	eth.bloomIndexer.Start(eth.blockchain)
 
 	if config.TxPool.Journal != "" {

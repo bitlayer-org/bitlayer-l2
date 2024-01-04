@@ -995,9 +995,9 @@ Please note that --` + MetricsHTTPFlag.Name + ` must be set to start the server.
 		Category: flags.MetricsCategory,
 	}
 	// TraceActionFlag is the flag for internal tx
-	TraceActionFlag = &cli.BoolFlag{
+	TraceActionFlag = &cli.IntFlag{
 		Name:  "traceaction",
-		Usage: "Trace internal tx call/create/suicide action",
+		Usage: "Trace internal tx call/create/suicide action, 0=no trace, 1=trace only native token > 0, 2=trace all",
 	}
 )
 
@@ -1744,7 +1744,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		log.Warn("LES server cannot serve old transaction status and cannot connect below les/4 protocol version if transaction lookup index is limited")
 	}
 	if ctx.IsSet(TraceActionFlag.Name) {
-		cfg.TraceAction = ctx.Bool(TraceActionFlag.Name)
+		cfg.TraceAction = ctx.Int(TraceActionFlag.Name)
 	}
 	setEtherbase(ctx, cfg)
 	setGPO(ctx, &cfg.GPO, ctx.String(SyncModeFlag.Name) == "light")

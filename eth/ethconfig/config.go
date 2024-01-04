@@ -209,7 +209,7 @@ type Config struct {
 	OverrideShanghai *uint64 `toml:",omitempty"`
 
 	// Enable record action trace
-	TraceAction bool `toml:",omitempty"`
+	TraceAction int `toml:",omitempty"`
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain configuration.
