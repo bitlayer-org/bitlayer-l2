@@ -994,6 +994,11 @@ Please note that --` + MetricsHTTPFlag.Name + ` must be set to start the server.
 		Value:    metrics.DefaultConfig.InfluxDBOrganization,
 		Category: flags.MetricsCategory,
 	}
+	// TraceActionFlag is the flag for internal tx
+	TraceActionFlag = &cli.BoolFlag{
+		Name:  "traceaction",
+		Usage: "Trace internal tx call/create/suicide action",
+	}
 )
 
 var (
@@ -1737,6 +1742,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	}
 	if ctx.IsSet(LightServeFlag.Name) && ctx.Uint64(TxLookupLimitFlag.Name) != 0 {
 		log.Warn("LES server cannot serve old transaction status and cannot connect below les/4 protocol version if transaction lookup index is limited")
+	}
+	if ctx.IsSet(TraceActionFlag.Name) {
+		cfg.TraceAction = ctx.Bool(TraceActionFlag.Name)
 	}
 	setEtherbase(ctx, cfg)
 	setGPO(ctx, &cfg.GPO, ctx.String(SyncModeFlag.Name) == "light")
