@@ -36,11 +36,13 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/eth/tracers/logger"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/params"
@@ -886,6 +888,25 @@ func (s *BlockChainAPI) GetBlockReceipts(ctx context.Context, blockNrOrHash rpc.
 	}
 
 	return result, nil
+}
+
+func (api *BlockChainAPI) ReadInternalTxs(db ethdb.Reader, hash common.Hash, number uint64) []*types.InternalTx {
+	return rawdb.ReadInternalTxs(db, hash, number)
+}
+
+// TraceActionByBlockHash return actions of internal txs by block hash
+func (api *BlockChainAPI) GetTraceActionByBlockHash(ctx context.Context, hash common.Hash) (types.InternalTxs, error) {
+	return types.TraceActionByBlockHash(api.b, api, ctx, hash)
+}
+
+// TraceActionByBlockNumber return actions of internal txs by block number
+func (api *BlockChainAPI) GetTraceActionByBlockNumber(ctx context.Context, number rpc.BlockNumber, filter *types.ActionConfig) (types.InternalTxs, error) {
+	return types.TraceActionByBlockNumber(api.b, api, ctx, number, filter)
+}
+
+// TraceActionByBlockNumber return actions of internal txs by tx hash
+func (api *BlockChainAPI) GetTraceActionByTxHash(ctx context.Context, hash common.Hash, filter *types.ActionConfig) (*types.InternalTx, error) {
+	return types.TraceActionByTxHash(api.b, api, ctx, hash, filter)
 }
 
 // OverrideAccount indicates the overriding fields of account during the execution
