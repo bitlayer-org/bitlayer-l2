@@ -263,16 +263,16 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainHeaderReader, header, pa
 	if diff := new(big.Int).Sub(header.Number, parent.Number); diff.Cmp(big.NewInt(1)) != 0 {
 		return consensus.ErrInvalidNumber
 	}
-	if chain.Config().IsShanghai(header.Number, header.Time) {
-		return errors.New("ethash does not support shanghai fork")
-	}
-	// Verify the non-existence of withdrawalsHash.
-	if header.WithdrawalsHash != nil {
-		return fmt.Errorf("invalid withdrawalsHash: have %x, expected nil", header.WithdrawalsHash)
-	}
-	if chain.Config().IsCancun(header.Number, header.Time) {
-		return errors.New("ethash does not support cancun fork")
-	}
+	// if chain.Config().IsShanghai(header.Number, header.Time) {
+	// 	return errors.New("ethash does not support shanghai fork")
+	// }
+	// // Verify the non-existence of withdrawalsHash.
+	// if header.WithdrawalsHash != nil {
+	// 	return fmt.Errorf("invalid withdrawalsHash: have %x, expected nil", header.WithdrawalsHash)
+	// }
+	// if chain.Config().IsCancun(header.Number, header.Time) {
+	// 	return errors.New("ethash does not support cancun fork")
+	// }
 	// Verify the non-existence of cancun-specific header fields
 	switch {
 	case header.ExcessBlobGas != nil:
