@@ -363,23 +363,23 @@ func (s *stateObject) updateSnapshot() {
 	}
 }
 
-// UpdateRoot sets the trie root to the current root hash of. An error
-// will be returned if trie root hash is not computed correctly.
-func (s *stateObject) updateRoot(db Database) {
-	tr, err := s.updateTrie(db)
-	if err != nil {
-		return
-	}
-	// If nothing changed, don't bother with hashing anything
-	if tr == nil {
-		return
-	}
-	// Track the amount of time wasted on hashing the storage trie
-	if metrics.EnabledExpensive {
-		defer func(start time.Time) { s.db.StorageHashes += time.Since(start) }(time.Now())
-	}
-	s.data.Root = tr.Hash()
-}
+// // UpdateRoot sets the trie root to the current root hash of. An error
+// // will be returned if trie root hash is not computed correctly.
+// func (s *stateObject) updateRoot(db Database) {
+// 	tr, err := s.updateTrie(db)
+// 	if err != nil {
+// 		return
+// 	}
+// 	// If nothing changed, don't bother with hashing anything
+// 	if tr == nil {
+// 		return
+// 	}
+// 	// Track the amount of time wasted on hashing the storage trie
+// 	if metrics.EnabledExpensive {
+// 		defer func(start time.Time) { s.db.StorageHashes += time.Since(start) }(time.Now())
+// 	}
+// 	s.data.Root = tr.Hash()
+// }
 
 // commitTrie submits the storage changes into the storage trie and re-computes
 // the root. Besides, all trie changes will be collected in a nodeset and returned.
