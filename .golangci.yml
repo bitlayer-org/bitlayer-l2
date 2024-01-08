@@ -8,6 +8,7 @@ run:
   skip-dirs-use-default: true
   skip-files:
     - core/genesis_alloc.go
+    - crypto/secp256k1/secp256_darwin_amd64.go
 
 linters:
   disable-all: true
