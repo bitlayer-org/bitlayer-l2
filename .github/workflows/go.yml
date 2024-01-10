@@ -1,7 +1,7 @@
 name: lint/test/build
 on:
   push:
-    branches: [master,feature/opt]
+    branches: [master,feature/opt_perf]
   pull_request:
 
 jobs:
