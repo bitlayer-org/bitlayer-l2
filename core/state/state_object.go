@@ -397,7 +397,6 @@ func (s *stateObject) updateSnapshot() {
 		s.db.prefetcher.used(s.addrHash, s.data.Root, s.usedStorage)
 		s.usedStorage = nil
 	}
-
 }
 
 // // updateRoot flushes all cached storage mutations to trie, recalculating the
