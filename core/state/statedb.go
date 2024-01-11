@@ -501,23 +501,16 @@ func (s *StateDB) GetTransientState(addr common.Address, key common.Hash) common
 //
 // concurrency safe
 func (s *StateDB) preUpdateStateObject(obj *stateObject) {
-	obj.updateTrieConcurrencySafe()
+	tr, _ := obj.updateTrieConcurrencySafe()
 
 	// If nothing changed, don't bother with hashing anything
-	if obj.trie != nil {
-		obj.data.Root = obj.trie.Hash()
+	if tr != nil {
+		obj.data.Root = tr.Hash()
 	}
 
 	// Encode the account and update the account trie
 	obj.accountRLP, obj.rlpErr = rlp.EncodeToBytes(obj)
 	obj.slimAccountRLP = types.SlimAccountRLP(obj.data)
-	if _, ok := s.accountsOrigin[obj.address]; !ok {
-		if obj.origin == nil {
-			obj.slimAccountRLPOrigin = nil
-		} else {
-			obj.slimAccountRLPOrigin = types.SlimAccountRLP(*obj.origin)
-		}
-	}
 }
 
 // updateStateObject writes the given object to the trie.
@@ -547,10 +540,17 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 	// Track the original value of mutated account, nil means it was not present.
 	// Skip if it has been tracked (because updateStateObject may be called
 	// multiple times in a block).
-	s.accountsOrigin[obj.address] = obj.slimAccountRLPOrigin
+	// s.accountsOrigin[obj.address] = obj.slimAccountRLPOrigin
+	if _, ok := s.accountsOrigin[obj.address]; !ok {
+		if obj.origin == nil {
+			s.accountsOrigin[obj.address] = nil
+		} else {
+			s.accountsOrigin[obj.address] = types.SlimAccountRLP(*obj.origin)
+		}
+	}
 
 	// clear rlp result
-	obj.accountRLP, obj.slimAccountRLP, obj.slimAccountRLPOrigin, obj.rlpErr = nil, nil, nil, nil
+	obj.accountRLP, obj.slimAccountRLP, obj.rlpErr = nil, nil, nil
 }
 
 // deleteStateObject removes the given object from the state trie.
@@ -982,6 +982,7 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	// the account prefetcher. Instead, let's process all the storage updates
 	// first, giving the account prefetches just a few more milliseconds of time
 	// to pull useful data from disk.
+
 	var wg sync.WaitGroup
 	for addr := range s.stateObjectsPending {
 		if obj := s.stateObjects[addr]; !obj.deleted {

@@ -91,10 +91,9 @@ type stateObject struct {
 	created bool
 
 	// only used between StateDB.preUpdateStateObject and StateDB.updateStateObject
-	accountRLP           []byte
-	rlpErr               error
-	slimAccountRLP       []byte
-	slimAccountRLPOrigin []byte
+	accountRLP     []byte
+	rlpErr         error
+	slimAccountRLP []byte
 
 	// only used between updateTrieConcurrencySafe and updateSnapshot
 	storage        map[common.Hash][]byte
@@ -279,20 +278,16 @@ func (s *stateObject) finalise(prefetch bool) {
 	}
 }
 
-// // updateTrie is responsible for persisting cached storage changes into the
-// // object's storage trie. In case the storage trie is not yet loaded, this
-// // function will load the trie automatically. If any issues arise during the
-// // loading or updating of the trie, an error will be returned. Furthermore,
-// // this function will return the mutated storage trie, or nil if there is no
-// // storage change at all.
+// updateTrie is responsible for persisting cached storage changes into the
+// object's storage trie. In case the storage trie is not yet loaded, this
+// function will load the trie automatically. If any issues arise during the
+// loading or updating of the trie, an error will be returned. Furthermore,
+// this function will return the mutated storage trie, or nil if there is no
+// storage change at all.
 // func (s *stateObject) updateTrie() (Trie, error) {
 // 	// Make sure all dirty slots are finalized into the pending storage area
 // 	s.finalise(false)
 
-// 	// Short circuit if nothing changed, don't bother with hashing anything
-// 	if len(s.pendingStorage) == 0 {
-// 		return s.trie, nil
-// 	}
 // 	// Track the amount of time wasted on updating the storage trie
 // 	if metrics.EnabledExpensive {
 // 		defer func(start time.Time) { s.db.StorageUpdates += time.Since(start) }(time.Now())
@@ -307,6 +302,7 @@ func (s *stateObject) finalise(prefetch bool) {
 // }
 
 func (s *stateObject) updateTrieConcurrencySafe() (Trie, error) {
+	// Short circuit if nothing changed, don't bother with hashing anything
 	if len(s.pendingStorage) == 0 {
 		return s.trie, nil
 	}
@@ -395,7 +391,7 @@ func (s *stateObject) updateSnapshot() {
 	}
 	if s.storagesOrigin != nil {
 		s.db.storagesOrigin[s.address] = s.storagesOrigin
-		s.storage = nil
+		s.storagesOrigin = nil
 	}
 	if s.db.prefetcher != nil && s.usedStorage != nil {
 		s.db.prefetcher.used(s.addrHash, s.data.Root, s.usedStorage)
