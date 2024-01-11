@@ -166,6 +166,14 @@ func (t *VerkleTrie) UpdateAccount(addr common.Address, acc *types.StateAccount)
 	return nil
 }
 
+// UpdateAccount implements state.Trie, writing the provided account into the tree.
+// If the tree is corrupted, an error will be returned.
+func (t *VerkleTrie) UpdateAccountWithData(addr common.Address, data []byte) error {
+	panic("unexpected update")
+	// TODO figure out if the code size needs to be updated, too
+	return nil
+}
+
 // UpdateStorage implements state.Trie, writing the provided storage slot into
 // the tree. If the tree is corrupted, an error will be returned.
 func (t *VerkleTrie) UpdateStorage(address common.Address, key, value []byte) error {

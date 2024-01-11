@@ -21,9 +21,11 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/gopool"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -31,6 +33,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/ethereum/go-ethereum/trie/trienode"
 	"github.com/ethereum/go-ethereum/trie/triestate"
@@ -494,9 +497,29 @@ func (s *StateDB) GetTransientState(addr common.Address, key common.Hash) common
 	return s.transientStorage.Get(addr, key)
 }
 
-//
 // Setting, updating & deleting state object methods.
 //
+// concurrency safe
+func (s *StateDB) preUpdateStateObject(obj *stateObject) {
+	obj.updateTrie()
+
+	// If nothing changed, don't bother with hashing anything
+	if obj.trie != nil {
+		obj.data.Root = obj.trie.Hash()
+	}
+
+	// Encode the account and update the account trie
+	obj.accountRLP, obj.rlpErr = rlp.EncodeToBytes(obj)
+	obj.slimAccountRLP = types.SlimAccountRLP(obj.data)
+	if _, ok := s.accountsOrigin[obj.address]; !ok {
+		if obj.origin == nil {
+			obj.slimAccountRLP = nil
+		} else {
+			obj.slimAccountRLP = types.SlimAccountRLP(*obj.origin)
+		}
+	}
+
+}
 
 // updateStateObject writes the given object to the trie.
 func (s *StateDB) updateStateObject(obj *stateObject) {
@@ -504,9 +527,12 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.AccountUpdates += time.Since(start) }(time.Now())
 	}
-	// Encode the account and update the account trie
 	addr := obj.Address()
-	if err := s.trie.UpdateAccount(addr, &obj.data); err != nil {
+	if obj.rlpErr != nil {
+		panic(fmt.Errorf("can't encode object at %x: %v", addr[:], obj.rlpErr))
+	}
+
+	if err := s.trie.UpdateAccountWithData(addr, obj.accountRLP); err != nil {
 		s.setError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
 	}
 	if obj.dirtyCode {
@@ -516,18 +542,15 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 	// to the deletion, because whereas it is enough to track account updates
 	// at commit time, deletions need tracking at transaction boundary level to
 	// ensure we capture state clearing.
-	s.accounts[obj.addrHash] = types.SlimAccountRLP(obj.data)
+	s.accounts[obj.addrHash] = obj.slimAccountRLP
 
 	// Track the original value of mutated account, nil means it was not present.
 	// Skip if it has been tracked (because updateStateObject may be called
 	// multiple times in a block).
-	if _, ok := s.accountsOrigin[obj.address]; !ok {
-		if obj.origin == nil {
-			s.accountsOrigin[obj.address] = nil
-		} else {
-			s.accountsOrigin[obj.address] = types.SlimAccountRLP(*obj.origin)
-		}
-	}
+	s.accountsOrigin[obj.address] = obj.slimAccountRLPOrigin
+
+	// clear rlp result
+	obj.accountRLP, obj.slimAccountRLP, obj.slimAccountRLPOrigin, obj.rlpErr = nil, nil, nil, nil
 }
 
 // deleteStateObject removes the given object from the state trie.
@@ -892,10 +915,25 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	// the account prefetcher. Instead, let's process all the storage updates
 	// first, giving the account prefetches just a few more milliseconds of time
 	// to pull useful data from disk.
+	var wg sync.WaitGroup
 	for addr := range s.stateObjectsPending {
 		if obj := s.stateObjects[addr]; !obj.deleted {
-			obj.updateRoot()
+			obj.finalise(false)
+			wg.Add(1)
+			gopool.Submit(func() {
+				s.preUpdateStateObject(obj)
+				wg.Done()
+			})
 		}
+	}
+	// Track the amount of time wasted on updating the storage trie and getting rlp of the account
+	var start time.Time
+	if metrics.EnabledExpensive {
+		start = time.Now()
+	}
+	wg.Wait()
+	if metrics.EnabledExpensive {
+		s.StorageUpdates += time.Since(start)
 	}
 	// Now we're about to start to write changes to the trie. The trie is so far
 	// _untouched_. We can check with the prefetcher, if it can give us a trie

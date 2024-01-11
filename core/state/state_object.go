@@ -89,6 +89,12 @@ type stateObject struct {
 
 	// Flag whether the object was created in the current transaction
 	created bool
+
+	// only used between StateDB.preUpdateStateObject and StateDB.updateStateObject
+	accountRLP           []byte
+	rlpErr               error
+	slimAccountRLP       []byte
+	slimAccountRLPOrigin []byte
 }
 
 // empty returns whether the account is considered empty.
@@ -286,17 +292,32 @@ func (s *stateObject) updateTrie() (Trie, error) {
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageUpdates += time.Since(start) }(time.Now())
 	}
+	tr, err := s.updateTrieConcurrencySafe()
+	if err == nil {
+		return tr, nil
+	} else {
+		return nil, err
+	}
+}
+
+func (s *stateObject) updateTrieConcurrencySafe() (Trie, error) {
+	if len(s.pendingStorage) == 0 {
+		return s.trie, nil
+	}
+
 	// The snapshot storage map for the object
 	var (
 		storage map[common.Hash][]byte
 		origin  map[common.Hash][]byte
 	)
 	tr, err := s.getTrie()
+
 	if err != nil {
 		s.db.setError(err)
 		return nil, err
 	}
 	// Insert all the pending storage updates into the trie
+
 	usedStorage := make([][]byte, 0, len(s.pendingStorage))
 	for key, value := range s.pendingStorage {
 		// Skip noop changes, persist actual changes
