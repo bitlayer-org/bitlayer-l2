@@ -518,7 +518,6 @@ func (s *StateDB) preUpdateStateObject(obj *stateObject) {
 			obj.slimAccountRLP = types.SlimAccountRLP(*obj.origin)
 		}
 	}
-
 }
 
 // updateStateObject writes the given object to the trie.
@@ -532,7 +531,7 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 		panic(fmt.Errorf("can't encode object at %x: %v", addr[:], obj.rlpErr))
 	}
 
-	if err := s.trie.UpdateAccountWithData(addr, obj.accountRLP); err != nil {
+	if err := s.trie.UpdateAccountWithData(addr, &obj.data, obj.accountRLP); err != nil {
 		s.setError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
 	}
 	if obj.dirtyCode {

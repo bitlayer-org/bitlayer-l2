@@ -176,13 +176,17 @@ func (t *StateTrie) UpdateAccount(address common.Address, acc *types.StateAccoun
 	return nil
 }
 
-func (t *StateTrie) UpdateAccountWithData(address common.Address, data []byte) error {
-	hk := t.hashKey(address.Bytes())
-	if err := t.trie.Update(hk, data); err != nil {
-		return err
+func (t *StateTrie) UpdateAccountWithData(address common.Address, account *types.StateAccount, data []byte) error {
+	if data != nil {
+		hk := t.hashKey(address.Bytes())
+		if err := t.trie.Update(hk, data); err != nil {
+			return err
+		}
+		t.getSecKeyCache()[string(hk)] = address.Bytes()
+		return nil
+	} else {
+		return t.UpdateAccount(address, account)
 	}
-	t.getSecKeyCache()[string(hk)] = address.Bytes()
-	return nil
 }
 
 func (t *StateTrie) UpdateContractCode(_ common.Address, _ common.Hash, _ []byte) error {

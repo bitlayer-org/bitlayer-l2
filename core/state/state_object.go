@@ -381,21 +381,21 @@ func (s *stateObject) updateTrieConcurrencySafe() (Trie, error) {
 	return tr, nil
 }
 
-// updateRoot flushes all cached storage mutations to trie, recalculating the
-// new storage trie root.
-func (s *stateObject) updateRoot() {
-	// Flush cached storage mutations into trie, short circuit if any error
-	// is occurred or there is not change in the trie.
-	tr, err := s.updateTrie()
-	if err != nil || tr == nil {
-		return
-	}
-	// Track the amount of time wasted on hashing the storage trie
-	if metrics.EnabledExpensive {
-		defer func(start time.Time) { s.db.StorageHashes += time.Since(start) }(time.Now())
-	}
-	s.data.Root = tr.Hash()
-}
+// // updateRoot flushes all cached storage mutations to trie, recalculating the
+// // new storage trie root.
+// func (s *stateObject) updateRoot() {
+// 	// Flush cached storage mutations into trie, short circuit if any error
+// 	// is occurred or there is not change in the trie.
+// 	tr, err := s.updateTrie()
+// 	if err != nil || tr == nil {
+// 		return
+// 	}
+// 	// Track the amount of time wasted on hashing the storage trie
+// 	if metrics.EnabledExpensive {
+// 		defer func(start time.Time) { s.db.StorageHashes += time.Since(start) }(time.Now())
+// 	}
+// 	s.data.Root = tr.Hash()
+// }
 
 // commit obtains a set of dirty storage trie nodes and updates the account data.
 // The returned set can be nil if nothing to commit. This function assumes all
