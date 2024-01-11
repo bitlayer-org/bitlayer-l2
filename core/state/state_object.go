@@ -95,6 +95,11 @@ type stateObject struct {
 	rlpErr               error
 	slimAccountRLP       []byte
 	slimAccountRLPOrigin []byte
+
+	// only used between updateTrieConcurrencySafe and updateSnapshot
+	storage        map[common.Hash][]byte
+	storagesOrigin map[common.Hash][]byte
+	usedStorage    [][]byte
 }
 
 // empty returns whether the account is considered empty.
@@ -274,31 +279,32 @@ func (s *stateObject) finalise(prefetch bool) {
 	}
 }
 
-// updateTrie is responsible for persisting cached storage changes into the
-// object's storage trie. In case the storage trie is not yet loaded, this
-// function will load the trie automatically. If any issues arise during the
-// loading or updating of the trie, an error will be returned. Furthermore,
-// this function will return the mutated storage trie, or nil if there is no
-// storage change at all.
-func (s *stateObject) updateTrie() (Trie, error) {
-	// Make sure all dirty slots are finalized into the pending storage area
-	s.finalise(false)
+// // updateTrie is responsible for persisting cached storage changes into the
+// // object's storage trie. In case the storage trie is not yet loaded, this
+// // function will load the trie automatically. If any issues arise during the
+// // loading or updating of the trie, an error will be returned. Furthermore,
+// // this function will return the mutated storage trie, or nil if there is no
+// // storage change at all.
+// func (s *stateObject) updateTrie() (Trie, error) {
+// 	// Make sure all dirty slots are finalized into the pending storage area
+// 	s.finalise(false)
 
-	// Short circuit if nothing changed, don't bother with hashing anything
-	if len(s.pendingStorage) == 0 {
-		return s.trie, nil
-	}
-	// Track the amount of time wasted on updating the storage trie
-	if metrics.EnabledExpensive {
-		defer func(start time.Time) { s.db.StorageUpdates += time.Since(start) }(time.Now())
-	}
-	tr, err := s.updateTrieConcurrencySafe()
-	if err == nil {
-		return tr, nil
-	} else {
-		return nil, err
-	}
-}
+// 	// Short circuit if nothing changed, don't bother with hashing anything
+// 	if len(s.pendingStorage) == 0 {
+// 		return s.trie, nil
+// 	}
+// 	// Track the amount of time wasted on updating the storage trie
+// 	if metrics.EnabledExpensive {
+// 		defer func(start time.Time) { s.db.StorageUpdates += time.Since(start) }(time.Now())
+// 	}
+// 	tr, err := s.updateTrieConcurrencySafe()
+// 	if err == nil {
+// 		s.updateSnapshot()
+// 		return tr, nil
+// 	} else {
+// 		return nil, err
+// 	}
+// }
 
 func (s *stateObject) updateTrieConcurrencySafe() (Trie, error) {
 	if len(s.pendingStorage) == 0 {
@@ -348,17 +354,15 @@ func (s *stateObject) updateTrieConcurrencySafe() (Trie, error) {
 		if storage == nil {
 			if storage = s.db.storages[s.addrHash]; storage == nil {
 				storage = make(map[common.Hash][]byte)
-				s.db.storages[s.addrHash] = storage
 			}
 		}
-		khash := crypto.HashDataWithCache(s.db.hasher, key[:])
+		khash := crypto.HashDataWithCache(crypto.NewKeccakState(), key[:])
 		storage[khash] = encoded // encoded will be nil if it's deleted
 
 		// Cache the original value of mutated storage slots
 		if origin == nil {
 			if origin = s.db.storagesOrigin[s.address]; origin == nil {
 				origin = make(map[common.Hash][]byte)
-				s.db.storagesOrigin[s.address] = origin
 			}
 		}
 		// Track the original value of slot only if it's mutated first time
@@ -374,11 +378,30 @@ func (s *stateObject) updateTrieConcurrencySafe() (Trie, error) {
 		// Cache the items for preloading
 		usedStorage = append(usedStorage, common.CopyBytes(key[:])) // Copy needed for closure
 	}
-	if s.db.prefetcher != nil {
-		s.db.prefetcher.used(s.addrHash, s.data.Root, usedStorage)
-	}
+
+	s.storage = storage
+	s.usedStorage = usedStorage
+	s.storagesOrigin = origin
+
 	s.pendingStorage = make(Storage) // reset pending map
 	return tr, nil
+}
+
+// update s.db.snapStorage and s.db.prefetcher.used
+func (s *stateObject) updateSnapshot() {
+	if s.storage != nil {
+		s.db.storages[s.addrHash] = s.storage
+		s.storage = nil
+	}
+	if s.storagesOrigin != nil {
+		s.db.storagesOrigin[s.address] = s.storagesOrigin
+		s.storage = nil
+	}
+	if s.db.prefetcher != nil && s.usedStorage != nil {
+		s.db.prefetcher.used(s.addrHash, s.data.Root, s.usedStorage)
+		s.usedStorage = nil
+	}
+
 }
 
 // // updateRoot flushes all cached storage mutations to trie, recalculating the

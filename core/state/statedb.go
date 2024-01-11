@@ -501,7 +501,7 @@ func (s *StateDB) GetTransientState(addr common.Address, key common.Hash) common
 //
 // concurrency safe
 func (s *StateDB) preUpdateStateObject(obj *stateObject) {
-	obj.updateTrie()
+	obj.updateTrieConcurrencySafe()
 
 	// If nothing changed, don't bother with hashing anything
 	if obj.trie != nil {
@@ -513,15 +513,16 @@ func (s *StateDB) preUpdateStateObject(obj *stateObject) {
 	obj.slimAccountRLP = types.SlimAccountRLP(obj.data)
 	if _, ok := s.accountsOrigin[obj.address]; !ok {
 		if obj.origin == nil {
-			obj.slimAccountRLP = nil
+			obj.slimAccountRLPOrigin = nil
 		} else {
-			obj.slimAccountRLP = types.SlimAccountRLP(*obj.origin)
+			obj.slimAccountRLPOrigin = types.SlimAccountRLP(*obj.origin)
 		}
 	}
 }
 
 // updateStateObject writes the given object to the trie.
 func (s *StateDB) updateStateObject(obj *stateObject) {
+	obj.updateSnapshot()
 	// Track the amount of time wasted on updating the account from the trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.AccountUpdates += time.Since(start) }(time.Now())
