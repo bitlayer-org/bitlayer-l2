@@ -934,7 +934,7 @@ func (s *BlockChainAPI) GetBlockReceipts(ctx context.Context, blockNrOrHash rpc.
 }
 
 // TraceActionByBlockHash return actions of internal txs by block hash
-func (api *BlockChainAPI) TraceActionByBlockHash(ctx context.Context, hash common.Hash) (types.InternalTxs, error) {
+func (api *BlockChainAPI) GetTraceActionByBlockHash(ctx context.Context, hash common.Hash) (types.InternalTxs, error) {
 	block, err := api.b.BlockByHash(ctx, hash)
 	if err != nil {
 		return nil, err
@@ -947,7 +947,7 @@ func (api *BlockChainAPI) TraceActionByBlockHash(ctx context.Context, hash commo
 }
 
 // TraceActionByBlockNumber return actions of internal txs by block number
-func (api *BlockChainAPI) TraceActionByBlockNumber(ctx context.Context, number rpc.BlockNumber, filter *types.ActionConfig) (types.InternalTxs, error) {
+func (api *BlockChainAPI) GetTraceActionByBlockNumber(ctx context.Context, number rpc.BlockNumber, filter *types.ActionConfig) (types.InternalTxs, error) {
 	block, err := api.blockByNumber(ctx, number)
 	if err != nil {
 		return nil, err
@@ -975,7 +975,7 @@ func (api *BlockChainAPI) TraceActionByBlockNumber(ctx context.Context, number r
 }
 
 // TraceActionByBlockNumber return actions of internal txs by tx hash
-func (api *BlockChainAPI) TraceActionByTxHash(ctx context.Context, hash common.Hash, filter *types.ActionConfig) (*types.InternalTx, error) {
+func (api *BlockChainAPI) GetTraceActionByTxHash(ctx context.Context, hash common.Hash, filter *types.ActionConfig) (*types.InternalTx, error) {
 	tx, blkHash, _, _, err := api.b.GetTransaction(ctx, hash)
 	if err != nil {
 		return nil, err
