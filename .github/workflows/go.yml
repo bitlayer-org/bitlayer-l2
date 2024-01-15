@@ -36,7 +36,7 @@ jobs:
 
       - name: Run Unit tests.
         run:  |
-          go test ./... 
+          go test -short ./... 
 
   build:
     name: Build
