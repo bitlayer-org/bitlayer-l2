@@ -20,8 +20,10 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/gopool"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -50,6 +52,18 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 	}
 }
 
+type ProcessOption struct {
+	bloomWg *sync.WaitGroup
+}
+
+type ModifyProcessOptionFunc func(opt *ProcessOption)
+
+func CreatingBloomParallel(wg *sync.WaitGroup) ModifyProcessOptionFunc {
+	return func(opt *ProcessOption) {
+		opt.bloomWg = wg
+	}
+}
+
 // Process processes the state changes according to the Ethereum rules by running
 // the transaction messages using the statedb and applying any rewards to both
 // the processor (coinbase) and any included uncles.
@@ -57,7 +71,7 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, types.InternalTxs, uint64, error) {
 	var (
 		receipts    types.Receipts
 		usedGas     = new(uint64)
@@ -66,11 +80,14 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		blockNumber = block.Number()
 		allLogs     []*types.Log
 		gp          = new(GasPool).AddGas(block.GasLimit())
+		tracer      *vm.ActionLogger
+		internalTxs types.InternalTxs
 	)
 	// Mutate the block and state according to any hard-fork specs
 	if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
 		misc.ApplyDAOHardFork(statedb)
 	}
+
 	var (
 		context = NewEVMBlockContext(header, p.bc, nil)
 		vmenv   = vm.NewEVM(context, vm.TxContext{}, statedb, p.config, cfg)
@@ -79,32 +96,84 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
+
+	if cfg.TraceAction > 0 {
+		tracer = vm.NewActionLogger()
+		cfg.Tracer = tracer
+	}
+
+	// preload from and to of txs
+	statedb.PreloadAccounts(block, signer)
+
+	var bloomWg sync.WaitGroup
+	returnErrBeforeWaitGroup := true
+	defer func() {
+		if returnErrBeforeWaitGroup {
+			bloomWg.Wait()
+		}
+	}()
+
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
 		msg, err := TransactionToMessage(tx, signer, header.BaseFee)
 		if err != nil {
-			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
+			return nil, nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
 		statedb.SetTxContext(tx.Hash(), i)
-		receipt, err := applyTransaction(msg, p.config, gp, statedb, blockNumber, blockHash, tx, usedGas, vmenv)
+		receipt, err := applyTransaction(msg, p.config, gp, statedb, blockNumber, blockHash, tx, usedGas, vmenv, CreatingBloomParallel(&bloomWg))
 		if err != nil {
-			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
+			return nil, nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
+
+		if cfg.TraceAction > 0 {
+			actions, _ := tracer.GetResult()
+			if len(actions) > 0 {
+				if receipt.Status == types.ReceiptStatusFailed {
+					for _, action := range actions {
+						action.Success = false
+					}
+				}
+				if cfg.TraceAction == 1 {
+					actionsTmp := make([]*types.Action, 0)
+					for i := 0; i < len(actions); i++ {
+						if actions[i].Value != nil && actions[i].Value.Cmp(big.NewInt(0)) != 0 {
+							actionsTmp = append(actionsTmp, actions[i])
+						}
+					}
+					if len(actionsTmp) > 0 {
+						internalTxs = append(internalTxs, &types.InternalTx{
+							TxHash:  tx.Hash(),
+							Actions: actionsTmp,
+						})
+					}
+				} else {
+					internalTxs = append(internalTxs, &types.InternalTx{
+						TxHash:  tx.Hash(),
+						Actions: actions,
+					})
+				}
+			}
+			tracer.Clear()
+		}
 	}
 	// Fail if Shanghai not enabled and len(withdrawals) is non-zero.
 	withdrawals := block.Withdrawals()
 	if len(withdrawals) > 0 && !p.config.IsShanghai(block.Number(), block.Time()) {
-		return nil, nil, 0, errors.New("withdrawals before shanghai")
+		return nil, nil, nil, 0, errors.New("withdrawals before shanghai")
 	}
+
+	bloomWg.Wait()
+	returnErrBeforeWaitGroup = false
+
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), withdrawals)
 
-	return receipts, allLogs, *usedGas, nil
+	return receipts, allLogs, internalTxs, *usedGas, nil
 }
 
-func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM) (*types.Receipt, error) {
+func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM, modOptions ...ModifyProcessOptionFunc) (*types.Receipt, error) {
 	// Create a new context to be used in the EVM environment.
 	txContext := NewEVMTxContext(msg)
 	evm.Reset(txContext, statedb)
@@ -147,10 +216,24 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, sta
 
 	// Set the receipt logs and create the bloom filter.
 	receipt.Logs = statedb.GetLogs(tx.Hash(), blockNumber.Uint64(), blockHash)
-	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 	receipt.BlockHash = blockHash
 	receipt.BlockNumber = blockNumber
 	receipt.TransactionIndex = uint(statedb.TxIndex())
+
+	var processOp ProcessOption
+	for _, fun := range modOptions {
+		fun(&processOp)
+	}
+	if processOp.bloomWg == nil {
+		receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+	} else {
+		processOp.bloomWg.Add(1)
+		gopool.Submit(func() {
+			receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+			processOp.bloomWg.Done()
+		})
+	}
+
 	return receipt, err
 }
 

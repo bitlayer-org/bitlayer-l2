@@ -20,6 +20,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/holiman/uint256"
 )
 
@@ -106,13 +107,13 @@ func (c *Contract) isCode(udest uint64) bool {
 	// Do we have a contract hash already?
 	// If we do have a hash, that means it's a 'regular' contract. For regular
 	// contracts ( not temporary initcode), we store the analysis in a map
-	if c.CodeHash != (common.Hash{}) {
+	if c.CodeHash != (common.Hash{}) && c.CodeHash != types.EmptyCodeHash {
 		// Does parent context have the analysis?
 		analysis, exist := c.jumpdests[c.CodeHash]
 		if !exist {
 			// Do the analysis and save in parent context
 			// We do not need to store it in c.analysis
-			analysis = codeBitmap(c.Code)
+			analysis = codeBitmapWithCache(c.Code, c.CodeHash)
 			c.jumpdests[c.CodeHash] = analysis
 		}
 		// Also stash it in current contract for faster access

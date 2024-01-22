@@ -166,6 +166,16 @@ func (t *VerkleTrie) UpdateAccount(addr common.Address, acc *types.StateAccount)
 	return nil
 }
 
+// UpdateAccount implements state.Trie, writing the provided account into the tree.
+// If the tree is corrupted, an error will be returned.
+func (t *VerkleTrie) UpdateAccountWithData(addr common.Address, acc *types.StateAccount, data []byte) error {
+	if data != nil {
+		return t.UpdateAccount(addr, acc)
+	} else {
+		return t.UpdateAccount(addr, acc)
+	}
+}
+
 // UpdateStorage implements state.Trie, writing the provided storage slot into
 // the tree. If the tree is corrupted, an error will be returned.
 func (t *VerkleTrie) UpdateStorage(address common.Address, key, value []byte) error {

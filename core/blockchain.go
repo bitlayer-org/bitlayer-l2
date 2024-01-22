@@ -1385,7 +1385,7 @@ func (bc *BlockChain) writeKnownBlock(block *types.Block) error {
 
 // writeBlockWithState writes block, metadata and corresponding state data to the
 // database.
-func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, state *state.StateDB) error {
+func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, internalTxs []*types.InternalTx, state *state.StateDB) error {
 	// Calculate the total difficulty of the block
 	ptd := bc.GetTd(block.ParentHash(), block.NumberU64()-1)
 	if ptd == nil {
@@ -1398,14 +1398,23 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	//
 	// Note all the components of block(td, hash->number map, header, body, receipts)
 	// should be written atomically. BlockBatch is used for containing all components.
-	blockBatch := bc.db.NewBatch()
-	rawdb.WriteTd(blockBatch, block.Hash(), block.NumberU64(), externTd)
-	rawdb.WriteBlock(blockBatch, block)
-	rawdb.WriteReceipts(blockBatch, block.Hash(), block.NumberU64(), receipts)
-	rawdb.WritePreimages(blockBatch, state.Preimages())
-	if err := blockBatch.Write(); err != nil {
-		log.Crit("Failed to write block into disk", "err", err)
-	}
+	var waitBlockBatchWrite sync.WaitGroup
+	waitBlockBatchWrite.Add(1)
+	defer waitBlockBatchWrite.Wait()
+	go func() {
+		blockBatch := bc.db.NewBatch()
+		rawdb.WriteTd(blockBatch, block.Hash(), block.NumberU64(), externTd)
+		rawdb.WriteBlock(blockBatch, block)
+		rawdb.WriteReceipts(blockBatch, block.Hash(), block.NumberU64(), receipts)
+		if len(internalTxs) > 0 {
+			rawdb.WriteInternalTxs(blockBatch, block.Hash(), block.NumberU64(), internalTxs)
+		}
+		rawdb.WritePreimages(blockBatch, state.Preimages())
+		if err := blockBatch.Write(); err != nil {
+			log.Crit("Failed to write block into disk", "err", err)
+		}
+		waitBlockBatchWrite.Done()
+	}()
 	// Commit all cached state changes into underlying memory database.
 	root, err := state.Commit(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
@@ -1468,6 +1477,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		}
 		bc.triedb.Dereference(root)
 	}
+
 	return nil
 }
 
@@ -1479,13 +1489,13 @@ func (bc *BlockChain) WriteBlockAndSetHead(block *types.Block, receipts []*types
 	}
 	defer bc.chainmu.Unlock()
 
-	return bc.writeBlockAndSetHead(block, receipts, logs, state, emitHeadEvent)
+	return bc.writeBlockAndSetHead(block, receipts, logs, nil, state, emitHeadEvent)
 }
 
 // writeBlockAndSetHead is the internal implementation of WriteBlockAndSetHead.
 // This function expects the chain mutex to be held.
-func (bc *BlockChain) writeBlockAndSetHead(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB, emitHeadEvent bool) (status WriteStatus, err error) {
-	if err := bc.writeBlockWithState(block, receipts, state); err != nil {
+func (bc *BlockChain) writeBlockAndSetHead(block *types.Block, receipts []*types.Receipt, logs []*types.Log, internalTxs []*types.InternalTx, state *state.StateDB, emitHeadEvent bool) (status WriteStatus, err error) {
+	if err := bc.writeBlockWithState(block, receipts, internalTxs, state); err != nil {
 		return NonStatTy, err
 	}
 	currentBlock := bc.CurrentBlock()
@@ -1598,7 +1608,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 	}
 
 	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
-	SenderCacher.RecoverFromBlocks(types.MakeSigner(bc.chainConfig, chain[0].Number(), chain[0].Time()), chain)
+	go SenderCacher.RecoverFromBlocks(types.MakeSigner(bc.chainConfig, chain[0].Number(), chain[0].Time()), chain)
 
 	var (
 		stats     = insertStats{startTime: mclock.Now()}
@@ -1807,7 +1817,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 
 		// Process block using the parent state as reference point
 		pstart := time.Now()
-		receipts, logs, usedGas, err := bc.processor.Process(block, statedb, bc.vmConfig)
+		receipts, logs, internalTxs, usedGas, err := bc.processor.Process(block, statedb, bc.vmConfig)
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
 			followupInterrupt.Store(true)
@@ -1847,9 +1857,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 		)
 		if !setHead {
 			// Don't set the head, only insert the block
-			err = bc.writeBlockWithState(block, receipts, statedb)
+			err = bc.writeBlockWithState(block, receipts, internalTxs, statedb)
 		} else {
-			status, err = bc.writeBlockAndSetHead(block, receipts, logs, statedb, false)
+			status, err = bc.writeBlockAndSetHead(block, receipts, logs, internalTxs, statedb, false)
 		}
 		followupInterrupt.Store(true)
 		if err != nil {

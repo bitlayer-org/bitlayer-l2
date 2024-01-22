@@ -95,6 +95,7 @@ type Trie interface {
 	// provided account object with associated algorithm and then updates it
 	// in the trie with provided address.
 	UpdateAccount(address common.Address, account *types.StateAccount) error
+	UpdateAccountWithData(address common.Address, account *types.StateAccount, data []byte) error
 
 	// UpdateStorage associates key with value in the trie. If value has length zero,
 	// any existing value is deleted from the trie. The value bytes must not be modified

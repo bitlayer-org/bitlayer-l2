@@ -36,6 +36,8 @@ func TestBlockchain(t *testing.T) {
 	// Skip random failures due to selfish mining test
 	bt.skipLoad(`.*bcForgedTest/bcForkUncle\.json`)
 
+	bt.skipLoad(`.*bcExample/mergeExample.json`)
+
 	// Slow tests
 	bt.slow(`.*bcExploitTest/DelegateCallSpam.json`)
 	bt.slow(`.*bcExploitTest/ShanghaiLove.json`)

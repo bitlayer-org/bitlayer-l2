@@ -438,6 +438,24 @@ web3._extend({
 			inputFormatter: [null, null, null]
 		}),
 		new web3._extend.Method({
+			name: 'traceActionByTxHash',
+			call: 'debug_traceActionByTxHash',
+			params: 2,
+			inputFormatter: [null, null]
+		}),
+		new web3._extend.Method({
+			name: 'traceActionByBlockNumber',
+			call: 'debug_traceActionByBlockNumber',
+			params: 2,
+			inputFormatter: [null, null]
+		}),
+		new web3._extend.Method({
+			name: 'traceActionByBlockHash',
+			call: 'debug_traceActionByBlockHash',
+			params: 1,
+			inputFormatter: [null]
+		}),
+		new web3._extend.Method({
 			name: 'preimage',
 			call: 'debug_preimage',
 			params: 1,
@@ -622,6 +640,25 @@ web3._extend({
 			call: 'eth_getBlockReceipts',
 			params: 1,
 		}),
+		new web3._extend.Method({
+			name: 'getTraceActionByTxHash',
+			call: 'eth_getTraceActionByTxHash',
+			params: 2,
+			inputFormatter: [null, null]
+		}),
+		new web3._extend.Method({
+			name: 'getTraceActionByBlockNumber',
+			call: 'eth_getTraceActionByBlockNumber',
+			params: 2,
+			inputFormatter: [null, null]
+		}),
+		new web3._extend.Method({
+			name: 'getTraceActionByBlockHash',
+			call: 'eth_getTraceActionByBlockHash',
+			params: 1,
+			inputFormatter: [null]
+		}),
+
 	],
 	properties: [
 		new web3._extend.Property({

@@ -36,6 +36,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/graph-gophers/graphql-go v1.3.0
 	github.com/hashicorp/go-bexpr v0.1.10
+	github.com/hashicorp/golang-lru v1.0.2
 	github.com/holiman/billy v0.0.0-20230718173358-1c7e68d277a7
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.2.4
@@ -51,6 +52,7 @@ require (
 	github.com/mattn/go-isatty v0.0.17
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/olekukonko/tablewriter v0.0.5
+	github.com/panjf2000/ants/v2 v2.9.0
 	github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7
 	github.com/protolambda/bls12-381-util v0.0.0-20220416220906-d8552aa452c7
 	github.com/rs/cors v1.7.0
