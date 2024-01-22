@@ -479,6 +479,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		bloomBits       stat
 		beaconHeaders   stat
 		cliqueSnaps     stat
+		merlionSnaps    stat
 
 		// Les statistic
 		chtTrieNodes   stat
@@ -541,6 +542,8 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 			beaconHeaders.Add(size)
 		case bytes.HasPrefix(key, CliqueSnapshotPrefix) && len(key) == 7+common.HashLength:
 			cliqueSnaps.Add(size)
+		case bytes.HasPrefix(key, []byte("merlion-")) && len(key) == 6+common.HashLength:
+			merlionSnaps.Add(size)
 		case bytes.HasPrefix(key, ChtTablePrefix) ||
 			bytes.HasPrefix(key, ChtIndexTablePrefix) ||
 			bytes.HasPrefix(key, ChtPrefix): // Canonical hash trie
@@ -594,6 +597,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		{"Key-Value store", "Storage snapshot", storageSnaps.Size(), storageSnaps.Count()},
 		{"Key-Value store", "Beacon sync headers", beaconHeaders.Size(), beaconHeaders.Count()},
 		{"Key-Value store", "Clique snapshots", cliqueSnaps.Size(), cliqueSnaps.Count()},
+		{"Key-Value store", "Merlion snapshots", merlionSnaps.Size(), merlionSnaps.Count()},
 		{"Key-Value store", "Singleton metadata", metadata.Size(), metadata.Count()},
 		{"Light client", "CHT trie nodes", chtTrieNodes.Size(), chtTrieNodes.Count()},
 		{"Light client", "Bloom trie nodes", bloomTrieNodes.Size(), bloomTrieNodes.Count()},

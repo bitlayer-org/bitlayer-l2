@@ -24,6 +24,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	cmath "github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/params"
@@ -440,7 +441,12 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	} else {
 		fee := new(big.Int).SetUint64(st.gasUsed())
 		fee.Mul(fee, effectiveTip)
-		st.state.AddBalance(st.evm.Context.Coinbase, fee)
+		// st.state.AddBalance(st.evm.Context.Coinbase, fee)
+		if st.evm.ChainConfig().Merlion != nil {
+			st.state.AddBalance(consensus.FeeRecoder, fee)
+		} else {
+			st.state.AddBalance(st.evm.Context.Coinbase, fee)
+		}
 	}
 
 	return &ExecutionResult{

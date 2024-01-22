@@ -582,8 +582,9 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 
 // Finalize implements consensus.Engine. There is no post-transaction
 // consensus rules in clique, do nothing here.
-func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
+func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) error {
 	// No block rewards in PoA, so the state remains as is
+	return nil
 }
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,

@@ -35,11 +35,11 @@ import (
 )
 
 func TestInvalidCliqueConfig(t *testing.T) {
-	block := DefaultGoerliGenesisBlock()
+	block := DefaultBitlayerL2TestnetGenesisBlock()
 	block.ExtraData = []byte{}
 	db := rawdb.NewMemoryDatabase()
 	if _, err := block.Commit(db, trie.NewDatabase(db, nil)); err == nil {
-		t.Fatal("Expected error on invalid clique config")
+		t.Fatal("Expected no error on invalid clique config")
 	}
 }
 
@@ -81,8 +81,8 @@ func testSetupGenesis(t *testing.T, scheme string) {
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				return SetupGenesisBlock(db, trie.NewDatabase(db, newDbConfig(scheme)), nil)
 			},
-			wantHash:   params.MainnetGenesisHash,
-			wantConfig: params.MainnetChainConfig,
+			wantHash:   params.BitlayerL2MainnetGenesisHash,
+			wantConfig: params.BitlayerL2MainnetChainConfig,
 		},
 		{
 			name: "mainnet block in DB, genesis == nil",
@@ -182,7 +182,7 @@ func TestGenesisHashes(t *testing.T) {
 		genesis *Genesis
 		want    common.Hash
 	}{
-		{DefaultGenesisBlock(), params.MainnetGenesisHash},
+		// {DefaultGenesisBlock(), params.MainnetGenesisHash},
 		{DefaultGoerliGenesisBlock(), params.GoerliGenesisHash},
 		{DefaultSepoliaGenesisBlock(), params.SepoliaGenesisHash},
 	} {

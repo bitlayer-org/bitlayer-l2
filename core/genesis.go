@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/contracts/system"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -57,6 +58,7 @@ type Genesis struct {
 	Mixhash    common.Hash         `json:"mixHash"`
 	Coinbase   common.Address      `json:"coinbase"`
 	Alloc      GenesisAlloc        `json:"alloc"      gencodec:"required"`
+	Validators []ValidatorInfo     `json:"validators"`
 
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
@@ -66,6 +68,44 @@ type Genesis struct {
 	BaseFee       *big.Int    `json:"baseFeePerGas"` // EIP-1559
 	ExcessBlobGas *uint64     `json:"excessBlobGas"` // EIP-4844
 	BlobGasUsed   *uint64     `json:"blobGasUsed"`   // EIP-4844
+}
+
+// InitArgs represents the args of system contracts initial args
+type Init struct {
+	Admin          common.Address `json:"admin,omitempty"`
+	BltAddress     common.Address `json:"bltAddress,omitempty"`
+	Epoch          *big.Int       `json:"epoch,omitempty"`
+	FoundationPool common.Address `json:"foundationPool,omitempty"`
+}
+
+// ValidatorInfo represents the info of initial validators
+type ValidatorInfo struct {
+	Address          common.Address `json:"address"         gencodec:"required"`
+	Manager          common.Address `json:"manager"         gencodec:"required"`
+	Rate             *big.Int       `json:"rate,omitempty"`
+	AcceptDelegation bool           `json:"acceptDelegation,omitempty"`
+}
+
+type validatorInfoMarshaling struct {
+	Rate *math.HexOrDecimal256
+}
+
+type initMarshaling struct {
+	Epoch *math.HexOrDecimal256
+}
+
+// makeValidator creates ValidatorInfo
+func makeValidator(address, manager, rate string, acceptDelegation bool) ValidatorInfo {
+	rateNum, ok := new(big.Int).SetString(rate, 10)
+	if !ok {
+		panic("Failed to make validator info due to invalid rate")
+	}
+	return ValidatorInfo{
+		Address:          common.HexToAddress(address),
+		Manager:          common.HexToAddress(manager),
+		Rate:             rateNum,
+		AcceptDelegation: acceptDelegation,
+	}
 }
 
 func ReadGenesis(db ethdb.Database) (*Genesis, error) {
@@ -153,15 +193,62 @@ func (ga *GenesisAlloc) hash(isVerkle bool) (common.Hash, error) {
 	return statedb.Commit(0, false)
 }
 
-// flush is very similar with hash, but the main difference is all the generated
-// states will be persisted into the given database. Also, the genesis state
-// specification will be flushed as well.
-func (ga *GenesisAlloc) flush(db ethdb.Database, triedb *trie.Database, blockhash common.Hash) error {
-	statedb, err := state.New(types.EmptyRootHash, state.NewDatabaseWithNodeDB(db, triedb), nil)
-	if err != nil {
-		return err
+// // flush is very similar with hash, but the main difference is all the generated
+// // states will be persisted into the given database. Also, the genesis state
+// // specification will be flushed as well.
+// func (ga *GenesisAlloc) flush(db ethdb.Database, triedb *trie.Database, blockhash common.Hash) error {
+// 	statedb, err := state.New(types.EmptyRootHash, state.NewDatabaseWithNodeDB(db, triedb), nil)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	for addr, account := range *ga {
+// 		if account.Balance != nil {
+// 			statedb.AddBalance(addr, account.Balance)
+// 		}
+// 		statedb.SetCode(addr, account.Code)
+// 		statedb.SetNonce(addr, account.Nonce)
+// 		for key, value := range account.Storage {
+// 			statedb.SetState(addr, key, value)
+// 		}
+// 	}
+// 	root, err := statedb.Commit(0, false)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	// Commit newly generated states into disk if it's not empty.
+// 	if root != types.EmptyRootHash {
+// 		if err := triedb.Commit(root, true); err != nil {
+// 			return err
+// 		}
+// 	}
+// 	// Marshal the genesis state specification and persist.
+// 	blob, err := json.Marshal(ga)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	rawdb.WriteGenesisStateSpec(db, blockhash, blob)
+// 	return nil
+// }
+
+func (g *Genesis) head(isVerkle bool) (*types.Header, error) {
+	// If a genesis-time verkle trie is requested, create a trie config
+	// with the verkle trie enabled so that the tree can be initialized
+	// as such.
+	var config *trie.Config
+	if isVerkle {
+		config = &trie.Config{
+			PathDB:   pathdb.Defaults,
+			IsVerkle: true,
+		}
 	}
-	for addr, account := range *ga {
+	// Create an ephemeral in-memory database for computing hash,
+	// all the derived states will be discarded to not pollute disk.
+	db := state.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), config)
+	statedb, err := state.New(types.EmptyRootHash, db, nil)
+	if err != nil {
+		return nil, err
+	}
+	for addr, account := range g.Alloc {
 		if account.Balance != nil {
 			statedb.AddBalance(addr, account.Balance)
 		}
@@ -169,6 +256,81 @@ func (ga *GenesisAlloc) flush(db ethdb.Database, triedb *trie.Database, blockhas
 		statedb.SetNonce(addr, account.Nonce)
 		for key, value := range account.Storage {
 			statedb.SetState(addr, key, value)
+		}
+	}
+
+	head := &types.Header{
+		Number:     new(big.Int).SetUint64(g.Number),
+		Nonce:      types.EncodeNonce(g.Nonce),
+		Time:       g.Timestamp,
+		ParentHash: g.ParentHash,
+		Extra:      g.ExtraData,
+		GasLimit:   g.GasLimit,
+		GasUsed:    g.GasUsed,
+		BaseFee:    g.BaseFee,
+		Difficulty: g.Difficulty,
+		MixDigest:  g.Mixhash,
+		Coinbase:   g.Coinbase,
+	}
+
+	// Handle the Merlion related
+	if g.Config != nil && g.Config.Merlion != nil {
+		// if len(head.Extra) < 32 {
+		// 	return nil, errors.New("head.extra length not match!")
+		// }
+		// init system contract
+		gInit := &genesisInit{statedb, head, g}
+		for name, initSystemContract := range map[string]func() error{
+			"Staking": gInit.initStaking,
+		} {
+			if err = initSystemContract(); err != nil {
+				log.Crit("Failed to init system contract in head", "contract", name, "err", err)
+			}
+		}
+		// Set validoter info
+		if head.Extra, err = gInit.initValidators(); err != nil {
+			log.Crit("Failed to init Validators in head", "err", err)
+		}
+	}
+
+	root, err := statedb.Commit(0, false)
+	if err != nil {
+		log.Crit("Failed to statedb.Commit", "err", err)
+	}
+	head.Root = root
+	log.Info("to block hash", root.String())
+	return head, nil
+}
+
+func (g *Genesis) flush(db ethdb.Database, triedb *trie.Database, blockhash common.Hash, head *types.Header) error {
+	statedb, err := state.New(types.EmptyRootHash, state.NewDatabaseWithNodeDB(db, triedb), nil)
+	if err != nil {
+		return err
+	}
+	for addr, account := range g.Alloc {
+		if account.Balance != nil {
+			statedb.AddBalance(addr, account.Balance)
+		}
+		statedb.SetCode(addr, account.Code)
+		statedb.SetNonce(addr, account.Nonce)
+		for key, value := range account.Storage {
+			statedb.SetState(addr, key, value)
+		}
+	}
+	// Handle the Merlion related
+	if g.Config != nil && g.Config.Merlion != nil {
+		// init system contract
+		gInit := &genesisInit{statedb, head, g}
+		for name, initSystemContract := range map[string]func() error{
+			"Staking": gInit.initStaking,
+		} {
+			if err = initSystemContract(); err != nil {
+				log.Crit("Failed to init system contract in flush", "contract", name, "err", err)
+			}
+		}
+		// Set validoter info
+		if _, err = gInit.initValidators(); err != nil {
+			log.Crit("Failed to init Validators in flush", "err", err)
 		}
 	}
 	root, err := statedb.Commit(0, false)
@@ -181,8 +343,10 @@ func (ga *GenesisAlloc) flush(db ethdb.Database, triedb *trie.Database, blockhas
 			return err
 		}
 	}
+	log.Info("flush block root", root.String())
+
 	// Marshal the genesis state specification and persist.
-	blob, err := json.Marshal(ga)
+	blob, err := json.Marshal(g.Alloc)
 	if err != nil {
 		return err
 	}
@@ -197,6 +361,7 @@ type GenesisAccount struct {
 	Balance    *big.Int                    `json:"balance" gencodec:"required"`
 	Nonce      uint64                      `json:"nonce,omitempty"`
 	PrivateKey []byte                      `json:"secretKey,omitempty"` // for tests
+	Init       *Init                       `json:"init,omitempty"`
 }
 
 // field type overrides for gencodec
@@ -294,7 +459,7 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, triedb *trie.Database, gen
 	if (stored == common.Hash{}) {
 		if genesis == nil {
 			log.Info("Writing default main-net genesis block")
-			genesis = DefaultGenesisBlock()
+			genesis = DefaultBitlayerL2GenesisBlock()
 		} else {
 			log.Info("Writing custom genesis block")
 		}
@@ -312,7 +477,7 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, triedb *trie.Database, gen
 	header := rawdb.ReadHeader(db, stored, 0)
 	if header.Root != types.EmptyRootHash && !triedb.Initialized(header.Root) {
 		if genesis == nil {
-			genesis = DefaultGenesisBlock()
+			genesis = DefaultBitlayerL2GenesisBlock()
 		}
 		applyOverrides(genesis.Config)
 		// Ensure the stored genesis matches with the given one.
@@ -352,7 +517,7 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, triedb *trie.Database, gen
 	// chain config as that would be AllProtocolChanges (applying any new fork
 	// on top of an existing private network genesis block). In that case, only
 	// apply the overrides.
-	if genesis == nil && stored != params.MainnetGenesisHash {
+	if genesis == nil && stored != params.BitlayerL2MainnetGenesisHash {
 		newcfg = storedcfg
 		applyOverrides(newcfg)
 	}
@@ -361,6 +526,10 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, triedb *trie.Database, gen
 	head := rawdb.ReadHeadHeader(db)
 	if head == nil {
 		return newcfg, stored, errors.New("missing head header")
+	}
+	// Check whether consensus config of Merlion is changed
+	if !storedcfg.IsMerlionCompatible(newcfg) {
+		return nil, common.Hash{}, errors.New("MerlionConfig is not compatible with stored")
 	}
 	compatErr := storedcfg.CheckCompatible(newcfg, head.Number.Uint64(), head.Time)
 	if compatErr != nil && ((head.Number.Uint64() != 0 && compatErr.RewindToBlock != 0) || (head.Time != 0 && compatErr.RewindToTime != 0)) {
@@ -416,8 +585,12 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return params.SepoliaChainConfig
 	case ghash == params.GoerliGenesisHash:
 		return params.GoerliChainConfig
+	case ghash == params.BitlayerL2MainnetGenesisHash:
+		return params.BitlayerL2MainnetChainConfig
+	case ghash == params.BitlayerL2TestnetGenesisHash:
+		return params.BitlayerL2TestnetChainConfig
 	default:
-		return params.AllEthashProtocolChanges
+		return params.AllMerlionProtocolChanges
 	}
 }
 
@@ -429,23 +602,10 @@ func (g *Genesis) IsVerkle() bool {
 
 // ToBlock returns the genesis block according to genesis specification.
 func (g *Genesis) ToBlock() *types.Block {
-	root, err := g.Alloc.hash(g.IsVerkle())
+	// root, err := g.Alloc.hash(g.IsVerkle())
+	head, err := g.head(g.IsVerkle())
 	if err != nil {
 		panic(err)
-	}
-	head := &types.Header{
-		Number:     new(big.Int).SetUint64(g.Number),
-		Nonce:      types.EncodeNonce(g.Nonce),
-		Time:       g.Timestamp,
-		ParentHash: g.ParentHash,
-		Extra:      g.ExtraData,
-		GasLimit:   g.GasLimit,
-		GasUsed:    g.GasUsed,
-		BaseFee:    g.BaseFee,
-		Difficulty: g.Difficulty,
-		MixDigest:  g.Mixhash,
-		Coinbase:   g.Coinbase,
-		Root:       root,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
@@ -460,6 +620,7 @@ func (g *Genesis) ToBlock() *types.Block {
 			head.BaseFee = new(big.Int).SetUint64(params.InitialBaseFee)
 		}
 	}
+
 	var withdrawals []*types.Withdrawal
 	if conf := g.Config; conf != nil {
 		num := big.NewInt(int64(g.Number))
@@ -489,6 +650,11 @@ func (g *Genesis) ToBlock() *types.Block {
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.
 func (g *Genesis) Commit(db ethdb.Database, triedb *trie.Database) (*types.Block, error) {
+	if g.Config != nil && g.Config.Merlion != nil {
+		if len(g.ExtraData) < 32 {
+			return nil, errors.New("extra data length not match")
+		}
+	}
 	block := g.ToBlock()
 	if block.Number().Sign() != 0 {
 		return nil, errors.New("can't commit genesis block with number > 0")
@@ -506,9 +672,11 @@ func (g *Genesis) Commit(db ethdb.Database, triedb *trie.Database) (*types.Block
 	// All the checks has passed, flush the states derived from the genesis
 	// specification as well as the specification itself into the provided
 	// database.
-	if err := g.Alloc.flush(db, triedb, block.Hash()); err != nil {
+	// if err := g.Alloc.flush(db, triedb, block.Hash()); err != nil {
+	if err := g.flush(db, triedb, block.Hash(), block.Header()); err != nil {
 		return nil, err
 	}
+	log.Info("genesis block hash", block.Hash().String())
 	rawdb.WriteTd(db, block.Hash(), block.NumberU64(), block.Difficulty())
 	rawdb.WriteBlock(db, block)
 	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)
@@ -608,7 +776,125 @@ func DeveloperGenesisBlock(gasLimit uint64, faucet *common.Address) *Genesis {
 	return genesis
 }
 
+// TODO
+// DefaultBitlayerL2GenesisBlock returns the Ethereum main net genesis block.
+func DefaultBitlayerL2GenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.BitlayerL2MainnetChainConfig,
+		Timestamp:  0x624e601f,
+		ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:   0x2625a00,
+		Difficulty: big.NewInt(1),
+		Alloc:      decodePrealloc(bitlayerL2MainnetAllocData),
+		Mixhash:    common.Hash{},
+		Validators: []ValidatorInfo{
+			makeValidator("0xAFB35C8E4f35E7307B0595f10F70d1ac26a8d6A3", "0xAFB35C8E4f35E7307B0595f10F70d1ac26a8d6A3", "20", true),
+			makeValidator("0xBa242CC4db10B1B5208cbA9d5121fa784FC1840e", "0xBa242CC4db10B1B5208cbA9d5121fa784FC1840e", "20", true),
+			makeValidator("0xcbC11aFA479A52d90b2f9CE85AA53FCcfA3be75c", "0xcbC11aFA479A52d90b2f9CE85AA53FCcfA3be75c", "20", true),
+		},
+	}
+}
+
+// TODO
+// DefaultTestnetGenesisBlock returns the Testnet network genesis block.
+func DefaultBitlayerL2TestnetGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.BitlayerL2TestnetChainConfig,
+		Timestamp:  0x624e601f,
+		ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:   0x2625a00,
+		Difficulty: big.NewInt(1),
+		Alloc:      decodePrealloc(bitlayerL2TestnetAllocData),
+		Mixhash:    common.Hash{},
+		Validators: []ValidatorInfo{
+			makeValidator("0xAFB35C8E4f35E7307B0595f10F70d1ac26a8d6A3", "0xAFB35C8E4f35E7307B0595f10F70d1ac26a8d6A3", "20", true),
+			makeValidator("0xBa242CC4db10B1B5208cbA9d5121fa784FC1840e", "0xBa242CC4db10B1B5208cbA9d5121fa784FC1840e", "20", true),
+			makeValidator("0xcbC11aFA479A52d90b2f9CE85AA53FCcfA3be75c", "0xcbC11aFA479A52d90b2f9CE85AA53FCcfA3be75c", "20", true),
+		},
+	}
+}
+
+// BasicMerlionGenesisBlock test only
+// BasicMerlionGenesisBlock returns a genesis containing basic allocation for Chais engine,
+func BasicMerlionGenesisBlock(config *params.ChainConfig, initialValidators []common.Address, faucet common.Address) *Genesis {
+	extraVanity := 32
+	extraData := make([]byte, extraVanity+65)
+	alloc := decodePrealloc(basicAllocForMerlion)
+	if (faucet != common.Address{}) {
+		// 100M
+		b, _ := new(big.Int).SetString("100000000000000000000000000", 10)
+		alloc[faucet] = GenesisAccount{Balance: b}
+	}
+	alloc[system.StakingContract].Init.Admin = faucet
+	alloc[system.StakingContract].Init.Epoch = new(big.Int).SetUint64(config.Merlion.Epoch)
+
+	validators := make([]ValidatorInfo, 0, len(initialValidators))
+	for _, val := range initialValidators {
+		validators = append(validators, ValidatorInfo{val, faucet, big.NewInt(20), true})
+	}
+
+	return &Genesis{
+		Config:     config,
+		ExtraData:  extraData,
+		GasLimit:   0x280de80,
+		Difficulty: big.NewInt(2),
+		Alloc:      alloc,
+		Validators: validators,
+	}
+}
+
+type initArgs struct {
+	Admin          *big.Int
+	BltAddress     *big.Int
+	Epoch          *big.Int
+	FoundationPool *big.Int
+}
+
 func decodePrealloc(data string) GenesisAlloc {
+	var p []struct {
+		Addr    *big.Int
+		Balance *big.Int
+		Init    *initArgs
+		Misc    *struct {
+			Nonce uint64
+			Code  []byte
+			Slots []struct {
+				Key common.Hash
+				Val common.Hash
+			}
+		} `rlp:"optional"`
+	}
+
+	if err := rlp.NewStream(strings.NewReader(data), 0).Decode(&p); err != nil {
+		return decodePreallocOld(data)
+	}
+	ga := make(GenesisAlloc, len(p))
+	for _, account := range p {
+		acc := GenesisAccount{Balance: account.Balance}
+		if account.Misc != nil {
+			acc.Nonce = account.Misc.Nonce
+			acc.Code = account.Misc.Code
+
+			acc.Storage = make(map[common.Hash]common.Hash)
+			for _, slot := range account.Misc.Slots {
+				acc.Storage[slot.Key] = slot.Val
+			}
+		}
+		if account.Init != nil {
+			init := &Init{
+				Admin:          common.BigToAddress(account.Init.Admin),
+				BltAddress:     common.BigToAddress(account.Init.BltAddress),
+				Epoch:          account.Init.Epoch,
+				FoundationPool: common.BigToAddress(account.Init.FoundationPool),
+			}
+			acc.Init = init
+		}
+		ga[common.BigToAddress(account.Addr)] = acc
+	}
+	return ga
+}
+
+func decodePreallocOld(data string) GenesisAlloc {
 	var p []struct {
 		Addr    *big.Int
 		Balance *big.Int
@@ -621,6 +907,7 @@ func decodePrealloc(data string) GenesisAlloc {
 			}
 		} `rlp:"optional"`
 	}
+
 	if err := rlp.NewStream(strings.NewReader(data), 0).Decode(&p); err != nil {
 		panic(err)
 	}

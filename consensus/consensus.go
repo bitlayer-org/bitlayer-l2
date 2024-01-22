@@ -23,8 +23,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
+)
+
+var (
+	FeeRecoder = common.HexToAddress("0xffffffffffffffffffffffffffffffffffffffff")
 )
 
 // ChainHeaderReader defines a small collection of methods needed to access the local
@@ -89,7 +94,7 @@ type Engine interface {
 	// Note: The state database might be updated to reflect any consensus rules
 	// that happen at finalization (e.g. block rewards).
 	Finalize(chain ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction,
-		uncles []*types.Header, withdrawals []*types.Withdrawal)
+		uncles []*types.Header, withdrawals []*types.Withdrawal) error
 
 	// FinalizeAndAssemble runs any post-transaction state modifications (e.g. block
 	// rewards or process withdrawals) and assembles the final block.
@@ -126,4 +131,24 @@ type PoW interface {
 
 	// Hashrate returns the current mining hashrate of a PoW consensus engine.
 	Hashrate() float64
+}
+
+// MerlionEngine is a consensus engine based on delegate proof-of-stake and BFT.
+type MerlionEngine interface {
+	Engine
+
+	// CurrentValidator Get the verifier address in the current consensus
+	CurrentValidator() common.Address
+	MaxValidators() uint8
+
+	Validators(chain ChainHeaderReader, hash common.Hash, number uint64) ([]common.Address, error)
+
+	GetDb() ethdb.Database
+
+	// ExtraValidateOfTx do some consensus related validation to a given transaction.
+	ExtraValidateOfTx(sender common.Address, tx *types.Transaction, header *types.Header) error
+}
+
+type StateReader interface {
+	GetState(addr common.Address, hash common.Hash) common.Hash
 }

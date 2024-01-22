@@ -38,9 +38,17 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+type initArgs struct {
+	Admin          *big.Int
+	BltAddress     *big.Int
+	Epoch          *big.Int
+	FoundationPool *big.Int
+}
+
 type allocItem struct {
 	Addr    *big.Int
 	Balance *big.Int
+	Init    *initArgs
 	Misc    *allocItemMisc `rlp:"optional"`
 }
 
@@ -58,6 +66,13 @@ type allocItemStorageItem struct {
 func makelist(g *core.Genesis) []allocItem {
 	items := make([]allocItem, 0, len(g.Alloc))
 	for addr, account := range g.Alloc {
+		init := &initArgs{}
+		if account.Init != nil {
+			init.Admin = new(big.Int).SetBytes(account.Init.Admin.Bytes())
+			init.BltAddress = new(big.Int).SetBytes(account.Init.BltAddress.Bytes())
+			init.Epoch = account.Init.Epoch
+			init.FoundationPool = new(big.Int).SetBytes(account.Init.FoundationPool.Bytes())
+		}
 		var misc *allocItemMisc
 		if len(account.Storage) > 0 || len(account.Code) > 0 || account.Nonce != 0 {
 			misc = &allocItemMisc{
@@ -73,7 +88,7 @@ func makelist(g *core.Genesis) []allocItem {
 			})
 		}
 		bigAddr := new(big.Int).SetBytes(addr.Bytes())
-		items = append(items, allocItem{bigAddr, account.Balance, misc})
+		items = append(items, allocItem{bigAddr, account.Balance, init, misc})
 	}
 	slices.SortFunc(items, func(a, b allocItem) int {
 		return a.Addr.Cmp(b.Addr)

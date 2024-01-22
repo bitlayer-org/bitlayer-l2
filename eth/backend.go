@@ -31,6 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/beacon"
 	"github.com/ethereum/go-ethereum/consensus/clique"
+	merlion "github.com/ethereum/go-ethereum/consensus/merlion"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -236,6 +237,14 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// do some extra work if consensus engine is merlion.
+	if merlionEngine, ok := eth.engine.(*merlion.Merlion); ok {
+		// set chain & state fn
+		merlionEngine.SetChain(eth.blockchain)
+		merlionEngine.SetStateFn(eth.blockchain.StateAt)
+	}
+
 	// Permit the downloader to use the trie cache allowance during fast sync
 	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit + cacheConfig.SnapshotLimit
 	if eth.handler, err = newHandler(&handlerConfig{
@@ -405,6 +414,9 @@ func (s *Ethereum) shouldPreserve(header *types.Header) bool {
 	if _, ok := s.engine.(*clique.Clique); ok {
 		return false
 	}
+	if _, ok := s.engine.(*merlion.Merlion); ok {
+		return false
+	}
 	return s.isLocalBlock(header)
 }
 
@@ -450,6 +462,14 @@ func (s *Ethereum) StartMining() error {
 				return fmt.Errorf("signer missing: %v", err)
 			}
 			cli.Authorize(eb, wallet.SignData)
+		}
+		if merlion, ok := s.engine.(*merlion.Merlion); ok {
+			wallet, err := s.accountManager.Find(accounts.Account{Address: eb})
+			if wallet == nil || err != nil {
+				log.Error("Etherbase account unavailable locally", "err", err)
+				return fmt.Errorf("signer missing: %v", err)
+			}
+			merlion.Authorize(eb, wallet.SignData, wallet.SignTx)
 		}
 		// If mining is started, we can disable the transaction rejection mechanism
 		// introduced to speed sync times.
