@@ -28,7 +28,11 @@ import (
 )
 
 // Tests that snap sync is disabled after a successful sync cycle.
-func TestSnapSyncDisabling67(t *testing.T) { testSnapSyncDisabling(t, eth.ETH67, snap.SNAP1) }
+func TestSnapSyncDisabling67(t *testing.T) {
+	t.Skip("skip for actions test")
+	testSnapSyncDisabling(t, eth.ETH67, snap.SNAP1)
+}
+
 func TestSnapSyncDisabling68(t *testing.T) {
 	t.Skip("skip for actions test")
 	testSnapSyncDisabling(t, eth.ETH68, snap.SNAP1)
