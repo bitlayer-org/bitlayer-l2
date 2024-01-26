@@ -33,7 +33,6 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/merlion/systemcontract"
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
-	"github.com/ethereum/go-ethereum/contracts/system"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -72,7 +71,7 @@ var (
 	diffNoTurn = big.NewInt(1) // Block difficulty for out-of-turn signatures
 
 	// "lazyPunish(address)": "e818ef86",
-	lazyPunishByte4 = []byte{0xe8, 0x18, 0xef, 0x86}
+	// lazyPunishByte4 = []byte{0xe8, 0x18, 0xef, 0x86}
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -151,7 +150,7 @@ var (
 	// errInclusion               = errors.New("inclusion relationship with last submission")
 	// errIsNotAuthorizedAtHeight = errors.New("the current verifier is invalid at the specified height")
 	// errSignFailed              = errors.New("sign attestation data failed")
-	errContainIllegalTx = errors.New("contains illegal transactions")
+	// errContainIllegalTx = errors.New("contains illegal transactions")
 )
 
 // StateFn gets state by the state root hash.
@@ -634,9 +633,6 @@ func (c *Merlion) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header 
 // * distribute block fee
 // * update validators
 // * decrease missed blocks counter
-// * update rewards info
-// * punish double sign
-// * process proposal tx (after Gravitation hardfork)
 func (c *Merlion) prepareFinalize(chain consensus.ChainHeaderReader, header *types.Header,
 	state *state.StateDB, txs *[]*types.Transaction, mined bool) error {
 	// punish validator if low difficulty block found
@@ -673,22 +669,36 @@ func (c *Merlion) prepareFinalize(chain consensus.ChainHeaderReader, header *typ
 
 // updateValidators updates validators info to system contracts
 func (c *Merlion) updateValidators(vmCtx *systemcontract.CallContext, chain consensus.ChainHeaderReader, mined bool) error {
-	newValidators, err := c.getTopValidators(chain, vmCtx.Header)
-	if err != nil {
-		return err
-	}
 	if !mined {
+		nextEpochValidators, err := c.getTopValidators(chain, vmCtx.Header)
+		if err != nil {
+			return err
+		}
 		// check whether validators are the same in header
-		validatorsBytes := make([]byte, len(newValidators)*common.AddressLength)
-		for i, validator := range newValidators {
+		validatorsBytes := make([]byte, len(nextEpochValidators)*common.AddressLength)
+		for i, validator := range nextEpochValidators {
 			copy(validatorsBytes[i*common.AddressLength:], validator.Bytes())
 		}
 		if !bytes.Equal(vmCtx.Header.Extra[extraVanity:len(vmCtx.Header.Extra)-extraSeal], validatorsBytes) {
 			return errInvalidExtraValidators
 		}
 	}
-	// update contract new validators if new set exists
-	if err := systemcontract.UpdateActiveValidatorSet(vmCtx, newValidators); err != nil {
+
+	// Validators of current epoch is come from the last epoch header.
+	// Update current validators set to system contract.
+	checkpointHeader := chain.GetHeaderByNumber(vmCtx.Header.Number.Uint64() - c.config.Epoch)
+	if checkpointHeader == nil {
+		return consensus.ErrUnknownAncestor
+	}
+	// get validators from headers and use that for new validator set
+	currValidators := make([]common.Address, (len(checkpointHeader.Extra)-extraVanity-extraSeal)/common.AddressLength)
+	for i := 0; i < len(currValidators); i++ {
+		copy(currValidators[i][:], checkpointHeader.Extra[extraVanity+i*common.AddressLength:])
+	}
+	if len(currValidators) < 1 {
+		return errInvalidExtraValidators
+	}
+	if err := systemcontract.UpdateActiveValidatorSet(vmCtx, currValidators); err != nil {
 		log.Error("Fail to update validators to system contract", "err", err)
 		return err
 	}
@@ -930,22 +940,4 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	if err != nil {
 		panic("can't encode: " + err.Error())
 	}
-}
-
-func (c *Merlion) ExtraValidateOfTx(sender common.Address, tx *types.Transaction, header *types.Header) error {
-	// check invalid call to the Staking contract;
-	// Miner should not call the following funcs through transaction:
-	// "doubleSignPunish(bytes32,address)": "01036cae",
-	// "lazyPunish(address)": "e818ef86",
-	if sender == header.Coinbase &&
-		tx.To() != nil && *(tx.To()) == (system.StakingContract) {
-		if len(tx.Data()) >= 4 {
-			b4 := tx.Data()[:4]
-			if bytes.Equal(b4, lazyPunishByte4) {
-				log.Error(errInvalidDifficulty.Error(), "number", header.Number, "blockHash", header.Hash().String(), "miner", header.Coinbase.String(), "txHash", tx.Hash().String(), "txData", common.Bytes2Hex(tx.Data()))
-				return errContainIllegalTx
-			}
-		}
-	}
-	return nil
 }

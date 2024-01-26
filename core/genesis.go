@@ -298,7 +298,7 @@ func (g *Genesis) head(isVerkle bool) (*types.Header, error) {
 		log.Crit("Failed to statedb.Commit", "err", err)
 	}
 	head.Root = root
-	log.Info("to block hash", root.String())
+	log.Info("to block hash root", root.String())
 	return head, nil
 }
 

@@ -23,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -133,22 +132,7 @@ type PoW interface {
 	Hashrate() float64
 }
 
-// MerlionEngine is a consensus engine based on delegate proof-of-stake and BFT.
+// MerlionEngine is a consensus engine based on delegate proof-of-stake.
 type MerlionEngine interface {
 	Engine
-
-	// CurrentValidator Get the verifier address in the current consensus
-	CurrentValidator() common.Address
-	MaxValidators() uint8
-
-	Validators(chain ChainHeaderReader, hash common.Hash, number uint64) ([]common.Address, error)
-
-	GetDb() ethdb.Database
-
-	// ExtraValidateOfTx do some consensus related validation to a given transaction.
-	ExtraValidateOfTx(sender common.Address, tx *types.Transaction, header *types.Header) error
-}
-
-type StateReader interface {
-	GetState(addr common.Address, hash common.Hash) common.Hash
 }

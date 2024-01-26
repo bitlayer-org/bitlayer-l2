@@ -153,10 +153,10 @@ func (s *Snapshot) apply(headers []*types.Header, chain consensus.ChainHeaderRea
 		}
 		snap.Recents[number] = validator
 
-		// Before the first epoch block after Waterdrop hard-fork: update validators at the first block at epoch;
-		// Starting from the first epoch block after Waterdrop hard-fork: use a look-back validator.
-		// Which means: the blocks in range [1, ((waterdropBlock/EpochPeriod)+1)*EpochPeriod ] are using the latest validators set;
-		// the blocks ≥ ((waterdropBlock/EpochPeriod)+1)*EpochPeriod + 1 are using the look-back validators set.
+		// update validators at the first block at epoch
+		// use a look-back validators set for Merlion.
+		// That is: the blocks in the first two epoch will use the genesis validators;
+		// the blocks ≥ 2*EpochPeriod + 1 are using the look-back validators set.
 		if number > 0 && number%s.config.Merlion.Epoch == 0 {
 			var checkpointHeader *types.Header
 			// For a large chain insertion, the previous blocks may not have been written to db,
