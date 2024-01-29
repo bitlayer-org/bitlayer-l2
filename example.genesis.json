@@ -1,6 +1,6 @@
 {
     "config": {
-      "chainId": 200810,
+      "chainId": 6660011,
       "homesteadBlock": 0,
       "eip150Block": 0,
       "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -31,14 +31,26 @@
     "coinbase": "0x0000000000000000000000000000000000000000",
     "extraData": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
     "alloc": {
-      "Ba242CC4db10B1B5208cbA9d5121fa784FC1840e": {
-        "balance": "50000000000000000000"
+      "0x6BC0E9C6a939f8f6d3413091738665aD1D7d2776": {
+        "balance": "0xffffffffffffffffffbae1600000"
       },
-      "AFB35C8E4f35E7307B0595f10F70d1ac26a8d6A3": {
-        "balance": "50000000000000000000"
+      "0x0942737e33b1AD9B028bb4FAb46677B1e5371D79": {
+        "balance": "0xffffffffffffffffffbae1600000"
       },
-      "cbC11aFA479A52d90b2f9CE85AA53FCcfA3be75c": {
-        "balance": "50000000000000000000"
+      "0xA27dE7311AEc2Fd5DDE3cc8322129479B6997d28": {
+        "balance": "0xffffffffffffffffffbae1600000"
+      },
+      "0x7D63E9587ad75D73793a8384Dfc8f54ccdbE0CB7": {
+        "balance": "0xffffffffffffffffffbae1600000"
+      },
+      "0x4d0d466Ef4E50F176419D6047Cf5FC292459D6Fd": {
+        "balance": "0xffffffffffffffffffbae1600000"
+      },
+      "0xd502b3B6B5D11C8E174FC21F7A2A0C980fEff930": {
+        "balance": "0xffffffffffffffffffbae1600000"
+      },
+      "0x63c8ff996C5Ce222C1a7C3F26298De6B85Ff46a5": {
+        "balance": "0xffffffffffffffffffbae1600000"
       },
       "000000000000000000000000000000000000F000": {
         "balance": "50000000000000000000",
@@ -53,22 +65,22 @@
     },
     "validators": [
       {
-        "address": "0xAFB35C8E4f35E7307B0595f10F70d1ac26a8d6A3",
-        "manager": "0xAFB35C8E4f35E7307B0595f10F70d1ac26a8d6A3",
-        "rate": "20",
-        "acceptDelegation": true
-      },
-      {
-        "address": "0xBa242CC4db10B1B5208cbA9d5121fa784FC1840e",
-        "manager": "0xBa242CC4db10B1B5208cbA9d5121fa784FC1840e",
-        "rate": "20",
-        "acceptDelegation": true
-      },
-      {
-        "address": "0xcbC11aFA479A52d90b2f9CE85AA53FCcfA3be75c",
-        "manager": "0xcbC11aFA479A52d90b2f9CE85AA53FCcfA3be75c",
-        "rate": "20",
-        "acceptDelegation": true
-      }
+      "address": "0x0942737e33b1AD9B028bb4FAb46677B1e5371D79",
+      "manager": "0xA27dE7311AEc2Fd5DDE3cc8322129479B6997d28",
+      "rate": "20",
+      "acceptDelegation": true
+    },
+    {
+      "address": "0x7D63E9587ad75D73793a8384Dfc8f54ccdbE0CB7",
+      "manager": "0x4d0d466Ef4E50F176419D6047Cf5FC292459D6Fd",
+      "rate": "20",
+      "acceptDelegation": true
+    },
+    {
+      "address": "0xd502b3B6B5D11C8E174FC21F7A2A0C980fEff930",
+      "manager": "0x63c8ff996C5Ce222C1a7C3F26298De6B85Ff46a5",
+      "rate": "20",
+      "acceptDelegation": true
+    }
     ]
   }
