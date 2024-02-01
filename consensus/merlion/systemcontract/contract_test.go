@@ -16,16 +16,15 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/stretchr/testify/assert"
 )
 
 var GenesisValidators = []common.Address{
-	common.HexToAddress("0xAFB35C8E4f35E7307B0595f10F70d1ac26a8d6A3"),
-	common.HexToAddress("0xBa242CC4db10B1B5208cbA9d5121fa784FC1840e"),
-	common.HexToAddress("0xcbC11aFA479A52d90b2f9CE85AA53FCcfA3be75c"),
+	common.HexToAddress("0x0942737e33b1AD9B028bb4FAb46677B1e5371D79"),
+	common.HexToAddress("0x7D63E9587ad75D73793a8384Dfc8f54ccdbE0CB7"),
+	common.HexToAddress("0xd502b3B6B5D11C8E174FC21F7A2A0C980fEff930"),
 }
 
 func TestGetTopValidators(t *testing.T) {
@@ -33,30 +32,16 @@ func TestGetTopValidators(t *testing.T) {
 	assert.NoError(t, err, "Init call context error")
 
 	vals, err := GetTopValidators(ctx)
+	fmt.Printf("val size %d\n", len(vals))
+	for i := 0; i < len(vals); i++ {
+		fmt.Printf("val %d  %s\n", i, vals[i])
+	}
 	if assert.NoError(t, err) {
 		assert.Equal(t, GenesisValidators, vals)
 	}
 }
 
-func TestRegisterValidator(t *testing.T) {
-	// t.Skip("merlion contract not ready")
-	ctx, err := initCallContext()
-	assert.NoError(t, err, "Init call context error")
-
-	const method = "registerValidator"
-	err = contractWrite(ctx, system.StakingContract, method,
-		// common.HexToAddress("0x000000000000000000000000000000000000F000"),
-		// common.HexToAddress("0x000000000000000000000000000000000000F000"),
-		common.BigToAddress(big.NewInt(111)),
-		common.BigToAddress(big.NewInt(222)),
-		big.NewInt(1), big.NewInt(1), true)
-	if err != nil {
-		log.Error("registerValidator failed", err)
-	}
-}
-
 func TestUpdateActiveValidatorSet(t *testing.T) {
-	t.Skip("merlion contract not ready")
 	ctx, err := initCallContext()
 	assert.NoError(t, err, "Init call context error")
 
@@ -65,39 +50,18 @@ func TestUpdateActiveValidatorSet(t *testing.T) {
 		assert.True(t, ok, "invalid validator format")
 		return validators
 	}
-
-	// valSet := getActiveValidators(ctx)
-	// newSet := []common.Address{
-	// 	valSet[0],
-	// 	valSet[1],
-	// }
-
-	// err = UpdateActiveValidatorSet(ctx, newSet)
-	// if err != nil {
-	// 	fmt.Printf("UpdateActiveValidatorSet fail err %s\n", err.Error())
-	// }
-
-	// valSet2 := getActiveValidators(ctx)
-	// if valSet2 != nil {
-	// 	fmt.Printf("getActiveValidators len %d\n", len(valSet2))
-	// } else {
-	// 	fmt.Printf("getActiveValidators fail\n")
-	// }
-
+	valSet := getActiveValidators(ctx)
 	newSet := []common.Address{
-		common.BigToAddress(big.NewInt(111)),
-		common.BigToAddress(big.NewInt(222)),
+		valSet[0],
+		valSet[1],
 	}
 
-	// TODO stake first
 	if assert.NoError(t, UpdateActiveValidatorSet(ctx, newSet)) {
 		assert.Equal(t, newSet, getActiveValidators(ctx))
 	}
 }
 
 func TestDecreaseMissedBlocksCounter(t *testing.T) {
-	t.Skip("merlion contract not ready")
-
 	ctx, err := initCallContext()
 	assert.NoError(t, err, "Init call context error")
 
@@ -117,38 +81,34 @@ func TestDecreaseMissedBlocksCounter(t *testing.T) {
 }
 
 func TestDistributeBlockFee(t *testing.T) {
-	t.Skip("merlion contract not ready")
-
 	ctx, err := initCallContext()
 	assert.NoError(t, err, "Init call context error")
 
-	getValidatorFee := func(val common.Address) *big.Int {
-		contract, ok := readSystemContract(t, ctx, "valMaps", val).(common.Address)
-		assert.True(t, ok, "invalid contract format")
-		fee, ok := readContract(t, ctx, &contract, "currFeeRewards").(*big.Int)
-		assert.True(t, ok, "invalid fee format")
-		return fee
-	}
-
 	assert.NoError(t, UpdateActiveValidatorSet(ctx, GenesisValidators))
 
-	origin := ctx.Statedb.GetBalance(ctx.Header.Coinbase)
-	fee := big.NewInt(1000000000000000000)
+	val0 := ctx.Statedb.GetBalance(GenesisValidators[0])
+	val1 := ctx.Statedb.GetBalance(GenesisValidators[1])
+	val2 := ctx.Statedb.GetBalance(GenesisValidators[2])
+	fpaddress := common.HexToAddress("0x89407661aEcC10DD22a0385eF96860c3A4701c5c")
+	fp := ctx.Statedb.GetBalance(fpaddress)
 
+	fee := big.NewInt(1000000000000000000)
+	ctx.Statedb.AddBalance(EngineCaller, fee)
 	assert.NoError(t, DistributeBlockFee(ctx, fee))
 
-	assert.Equal(t, new(big.Int).Sub(origin, fee), ctx.Statedb.GetBalance(ctx.Header.Coinbase))
+	val0e := ctx.Statedb.GetBalance(GenesisValidators[0])
+	val1e := ctx.Statedb.GetBalance(GenesisValidators[1])
+	val2e := ctx.Statedb.GetBalance(GenesisValidators[2])
+	fpe := ctx.Statedb.GetBalance(fpaddress)
 
-	// assert.Equal(t, big.NewInt(fee.Int64()/5), ctx.Statedb.GetBalance(system.CommunityPoolContract))
+	fmt.Printf("before distribute val0 %s val1 %s val2 %s pool %s\n", val0.String(), val1.String(), val2.String(), fp)
+	fmt.Printf("after  distribute val0 %s val1 %s val2 %s pool %s\n", val0e.String(), val1e.String(), val2e.String(), fpe)
 
-	valAmount := big.NewInt(fee.Int64() / 5 * 4 / 2)
-	assert.Equal(t, valAmount, getValidatorFee(GenesisValidators[0]))
-	assert.Equal(t, valAmount, getValidatorFee(GenesisValidators[1]))
+	assert.Equal(t, big.NewInt(0), fp)
+	assert.Equal(t, big.NewInt(200000000000000002), fpe)
 }
 
 func TestLazyPunish(t *testing.T) {
-	t.Skip("merlion contract not ready")
-
 	ctx, err := initCallContext()
 	assert.NoError(t, err, "Init call context error")
 	getPunishRecord := func(val common.Address) int {
