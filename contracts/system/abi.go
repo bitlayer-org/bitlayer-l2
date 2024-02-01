@@ -525,7 +525,7 @@ const (
 		},
 		{
 		  "inputs": [],
-		  "name": "bltToken",
+		  "name": "brcToken",
 		  "outputs": [
 			{
 			  "internalType": "contract IERC20",
@@ -742,7 +742,7 @@ const (
 			},
 			{
 			  "internalType": "address",
-			  "name": "_bltAddress",
+			  "name": "_brcAddress",
 			  "type": "address"
 			},
 			{
@@ -830,6 +830,52 @@ const (
 			}
 		  ],
 		  "stateMutability": "view",
+		  "type": "function"
+		},
+		{
+		  "inputs": [
+			{
+			  "internalType": "address",
+			  "name": "_oldVal",
+			  "type": "address"
+			},
+			{
+			  "internalType": "address",
+			  "name": "_newVal",
+			  "type": "address"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "_amount",
+			  "type": "uint256"
+			}
+		  ],
+		  "name": "reDelegation",
+		  "outputs": [],
+		  "stateMutability": "nonpayable",
+		  "type": "function"
+		},
+		{
+		  "inputs": [
+			{
+			  "internalType": "address",
+			  "name": "_oldVal",
+			  "type": "address"
+			},
+			{
+			  "internalType": "address",
+			  "name": "_newVal",
+			  "type": "address"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "_amount",
+			  "type": "uint256"
+			}
+		  ],
+		  "name": "reStaking",
+		  "outputs": [],
+		  "stateMutability": "nonpayable",
 		  "type": "function"
 		},
 		{

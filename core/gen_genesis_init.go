@@ -16,13 +16,13 @@ var _ = (*initMarshaling)(nil)
 func (i Init) MarshalJSON() ([]byte, error) {
 	type Init struct {
 		Admin           common.Address       	`json:"admin,omitempty"`
-		BltAddress 		common.Address 			`json:"bltAddress,omitempty"`
+		BrcAddress 		common.Address 			`json:"brcAddress,omitempty"`
 		Epoch  			 *math.HexOrDecimal256 	`json:"epoch,omitempty"`
 		FoundationPool  common.Address 			`json:"foundationPool,omitempty"`
 	}
 	var enc Init
 	enc.Admin = i.Admin
-	enc.BltAddress = i.BltAddress
+	enc.BrcAddress = i.BrcAddress
 	enc.Epoch = (*math.HexOrDecimal256)(i.Epoch)
 	enc.FoundationPool = i.FoundationPool
 	
@@ -33,7 +33,7 @@ func (i Init) MarshalJSON() ([]byte, error) {
 func (i *Init) UnmarshalJSON(input []byte) error {
 	type Init struct {
 		Admin           *common.Address         `json:"admin,omitempty"`
-		BltAddress		*common.Address         `json:"bltAddress,omitempty"`
+		BrcAddress		*common.Address         `json:"brcAddress,omitempty"`
 		Epoch   		*math.HexOrDecimal256   `json:"epoch,omitempty"`
 		FoundationPool  *common.Address         `json:"foundationPool,omitempty"`
 	}
@@ -44,8 +44,8 @@ func (i *Init) UnmarshalJSON(input []byte) error {
 	if dec.Admin != nil {
 		i.Admin = *dec.Admin
 	}
-	if dec.BltAddress != nil {
-		i.BltAddress = *dec.BltAddress
+	if dec.BrcAddress != nil {
+		i.BrcAddress = *dec.BrcAddress
 	}
 	if dec.Epoch != nil {
 		i.Epoch = (*big.Int)(dec.Epoch)
