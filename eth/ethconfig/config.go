@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/beacon"
 	"github.com/ethereum/go-ethereum/consensus/clique"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
+	merlion "github.com/ethereum/go-ethereum/consensus/merlion"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/txpool/blobpool"
 	"github.com/ethereum/go-ethereum/core/txpool/legacypool"
@@ -171,6 +172,10 @@ func CreateConsensusEngine(config *params.ChainConfig, db ethdb.Database) (conse
 	// If proof-of-authority is requested, set it up
 	if config.Clique != nil {
 		return beacon.New(clique.New(config.Clique, db)), nil
+	}
+	// If proof-of-stake-authority is requested, set it up
+	if config.Merlion != nil {
+		return merlion.New(config, db)
 	}
 	// If defaulting to proof-of-work, enforce an already merged network since
 	// we cannot run PoW algorithms anymore, so we cannot even follow a chain

@@ -20,6 +20,7 @@ package web3ext
 var Modules = map[string]string{
 	"admin":    AdminJs,
 	"clique":   CliqueJs,
+	"merlion":  MerlionJs,
 	"ethash":   EthashJs,
 	"debug":    DebugJs,
 	"eth":      EthJs,
@@ -85,6 +86,41 @@ web3._extend({
 		new web3._extend.Property({
 			name: 'proposals',
 			getter: 'clique_proposals'
+		}),
+	]
+});
+`
+
+const MerlionJs = `
+web3._extend({
+	property: 'merlion',
+	methods: [
+		new web3._extend.Method({
+			name: 'getSnapshot',
+			call: 'merlion_getSnapshot',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'getSnapshotAtHash',
+			call: 'merlion_getSnapshotAtHash',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'getValidators',
+			call: 'merlion_getValidators',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'getValidatorsAtHash',
+			call: 'merlion_getValidatorsAtHash',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'status',
+			call: 'merlion_status',
+			params: 0
 		}),
 	]
 });

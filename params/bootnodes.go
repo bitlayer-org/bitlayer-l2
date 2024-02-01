@@ -87,6 +87,10 @@ var V5Bootnodes = []string{
 	"enr:-LK4QKWrXTpV9T78hNG6s8AM6IO4XH9kFT91uZtFg1GcsJ6dKovDOr1jtAAFPnS2lvNltkOGA9k29BUN7lFh_sjuc9QBh2F0dG5ldHOIAAAAAAAAAACEZXRoMpC1MD8qAAAAAP__________gmlkgnY0gmlwhANAdd-Jc2VjcDI1NmsxoQLQa6ai7y9PMN5hpLe5HmiJSlYzMuzP7ZhwRiwHvqNXdoN0Y3CCI4yDdWRwgiOM", // 3.64.117.223 | aws-eu-central-1-frankfurt}
 }
 
+var BitlayerL2MainnetBootnodes = []string{}
+var BitlayerL2TestnetBootnodes = []string{}
+var BitlayerL2V5Bootnodes = []string{}
+
 const dnsPrefix = "enrtree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@"
 
 // KnownDNSNetwork returns the address of a public DNS-based node list for the given
@@ -104,7 +108,7 @@ func KnownDNSNetwork(genesis common.Hash, protocol string) string {
 	case HoleskyGenesisHash:
 		net = "holesky"
 	default:
-		return ""
+		return "" //BitlayerL2MainnetGenesisHash, BitlayerL2TestnetGenesisHash
 	}
 	return dnsPrefix + protocol + "." + net + ".ethdisco.net"
 }

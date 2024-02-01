@@ -23,19 +23,23 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// TODO
 // Genesis hashes to enforce below configs on.
 var (
 	MainnetGenesisHash = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
 	HoleskyGenesisHash = common.HexToHash("0xb5f7f912443c940f21fd611f12828d75b534364ed9e95ca4e307729a4661bde4")
 	SepoliaGenesisHash = common.HexToHash("0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9")
 	GoerliGenesisHash  = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
+
+	// TODO freddie replace
+	BitlayerL2MainnetGenesisHash = common.HexToHash("0x23c956655b688130edef40c782978e36b6938196ce396e43f4254d566fdb0476")
+	BitlayerL2TestnetGenesisHash = common.HexToHash("0x23c956655b688130edef40c782978e36b6938196ce396e43f4254d566fdb0476")
 )
 
 func newUint64(val uint64) *uint64 { return &val }
 
 var (
 	MainnetTerminalTotalDifficulty, _ = new(big.Int).SetString("58_750_000_000_000_000_000_000", 0)
-
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
 		ChainID:                       big.NewInt(1),
@@ -133,6 +137,56 @@ var (
 			Epoch:  30000,
 		},
 	}
+
+	// MainnetChainConfig is the chain parameters to run a node on the main network.
+	BitlayerL2MainnetChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(200901),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		BerlinBlock:         big.NewInt(0),
+		LondonBlock:         big.NewInt(0),
+		ArrowGlacierBlock:   big.NewInt(0),
+		GrayGlacierBlock:    big.NewInt(0),
+		ShanghaiTime:        newUint64(0),
+		Merlion: &MerlionConfig{
+			Period: 3,
+			Epoch:  200,
+		},
+	}
+	// TestnetChainConfig contains the chain parameters to run a node on the test network.
+	BitlayerL2TestnetChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(200810),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		BerlinBlock:         big.NewInt(0),
+		LondonBlock:         big.NewInt(0),
+		ArrowGlacierBlock:   big.NewInt(0),
+		GrayGlacierBlock:    big.NewInt(0),
+		ShanghaiTime:        newUint64(0),
+		Merlion: &MerlionConfig{
+			Period: 3,
+			Epoch:  200,
+		},
+	}
+
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
 	// and accepted by the Ethereum core developers into the Ethash consensus.
 	AllEthashProtocolChanges = &ChainConfig{
@@ -213,6 +267,30 @@ var (
 		Clique:                        &CliqueConfig{Period: 0, Epoch: 30000},
 	}
 
+	AllMerlionProtocolChanges = &ChainConfig{
+		ChainID:             big.NewInt(1337),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		BerlinBlock:         big.NewInt(0),
+		LondonBlock:         big.NewInt(0),
+		ArrowGlacierBlock:   big.NewInt(0),
+		GrayGlacierBlock:    big.NewInt(0),
+		ShanghaiTime:        newUint64(0),
+		Merlion: &MerlionConfig{
+			Period: 3,
+			Epoch:  200,
+		},
+	}
+
 	// TestChainConfig contains every protocol change (EIPs) introduced
 	// and accepted by the Ethereum core developers for testing purposes.
 	TestChainConfig = &ChainConfig{
@@ -277,10 +355,12 @@ var (
 
 // NetworkNames are user friendly names to use in the chain spec banner.
 var NetworkNames = map[string]string{
-	MainnetChainConfig.ChainID.String(): "mainnet",
 	GoerliChainConfig.ChainID.String():  "goerli",
 	SepoliaChainConfig.ChainID.String(): "sepolia",
 	HoleskyChainConfig.ChainID.String(): "holesky",
+
+	BitlayerL2MainnetChainConfig.ChainID.String(): "bitlaher.l2.mainnet",
+	BitlayerL2TestnetChainConfig.ChainID.String(): "bitlaher.l2.testnet",
 }
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -329,8 +409,9 @@ type ChainConfig struct {
 	TerminalTotalDifficultyPassed bool `json:"terminalTotalDifficultyPassed,omitempty"`
 
 	// Various consensus engines
-	Ethash *EthashConfig `json:"ethash,omitempty"`
-	Clique *CliqueConfig `json:"clique,omitempty"`
+	Ethash  *EthashConfig  `json:"ethash,omitempty"`
+	Clique  *CliqueConfig  `json:"clique,omitempty"`
+	Merlion *MerlionConfig `json:"merlion,omitempty"`
 }
 
 // EthashConfig is the consensus engine configs for proof-of-work based sealing.
@@ -350,6 +431,58 @@ type CliqueConfig struct {
 // String implements the stringer interface, returning the consensus engine details.
 func (c *CliqueConfig) String() string {
 	return "clique"
+}
+
+// MerlionConfig is the consensus engine configs for proof-of-stake-authority based sealing.
+type MerlionConfig struct {
+	Period uint64 `json:"period"` // Number of seconds between blocks to enforce
+	Epoch  uint64 `json:"epoch"`  // Epoch length to reset votes and checkpoint
+}
+
+// String implements the stringer interface, returning the consensus engine details.
+func (c *MerlionConfig) String() string {
+	return "merlion"
+}
+
+// String implements the fmt.Stringer interface.
+func (c *ChainConfig) String() string {
+	var engine interface{}
+	switch {
+	case c.Ethash != nil:
+		engine = c.Ethash
+	case c.Clique != nil:
+		engine = c.Clique
+	case c.Merlion != nil:
+		engine = c.Merlion
+	default:
+		engine = "unknown"
+	}
+	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, London: %v, Arrow Glacier: %v, Engine: %v}",
+		c.ChainID,
+		c.HomesteadBlock,
+		c.DAOForkBlock,
+		c.DAOForkSupport,
+		c.EIP150Block,
+		c.EIP155Block,
+		c.EIP158Block,
+		c.ByzantiumBlock,
+		c.ConstantinopleBlock,
+		c.PetersburgBlock,
+		c.IstanbulBlock,
+		c.MuirGlacierBlock,
+		c.BerlinBlock,
+		c.LondonBlock,
+		c.ArrowGlacierBlock,
+		engine,
+	)
+}
+
+// IsMerlionCompatible checks whether consensus config of Merlion is compatible
+func (c *ChainConfig) IsMerlionCompatible(newcfg *ChainConfig) bool {
+	if c.Merlion != nil && newcfg.Merlion != nil {
+		return c.Merlion.Period == newcfg.Merlion.Period && c.Merlion.Epoch == newcfg.Merlion.Epoch
+	}
+	return c.Merlion == nil && newcfg.Merlion == nil
 }
 
 // Description returns a human-readable description of ChainConfig.
@@ -379,6 +512,8 @@ func (c *ChainConfig) Description() string {
 		} else {
 			banner += "Consensus: Beacon (proof-of-stake), merged from Clique (proof-of-authority)\n"
 		}
+	case c.Merlion != nil:
+		banner += "Consensus: Merlion\n"
 	default:
 		banner += "Consensus: unknown\n"
 	}

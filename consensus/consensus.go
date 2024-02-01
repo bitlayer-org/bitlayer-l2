@@ -27,6 +27,10 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
+var (
+	FeeRecoder = common.HexToAddress("0xffffffffffffffffffffffffffffffffffffffff")
+)
+
 // ChainHeaderReader defines a small collection of methods needed to access the local
 // blockchain during header verification.
 type ChainHeaderReader interface {
@@ -89,7 +93,7 @@ type Engine interface {
 	// Note: The state database might be updated to reflect any consensus rules
 	// that happen at finalization (e.g. block rewards).
 	Finalize(chain ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction,
-		uncles []*types.Header, withdrawals []*types.Withdrawal)
+		uncles []*types.Header, withdrawals []*types.Withdrawal) error
 
 	// FinalizeAndAssemble runs any post-transaction state modifications (e.g. block
 	// rewards or process withdrawals) and assembles the final block.
@@ -126,4 +130,9 @@ type PoW interface {
 
 	// Hashrate returns the current mining hashrate of a PoW consensus engine.
 	Hashrate() float64
+}
+
+// MerlionEngine is a consensus engine based on delegate proof-of-stake.
+type MerlionEngine interface {
+	Engine
 }

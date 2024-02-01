@@ -131,7 +131,7 @@ var (
 	}
 	NetworkIdFlag = &cli.Uint64Flag{
 		Name:     "networkid",
-		Usage:    "Explicitly set network id (integer)(For testnets: use --goerli, --sepolia, --holesky instead)",
+		Usage:    "Explicitly set network id (integer)(For testnets: use --testnet instead)",
 		Value:    ethconfig.Defaults.NetworkId,
 		Category: flags.EthCategory,
 	}
@@ -153,6 +153,11 @@ var (
 	HoleskyFlag = &cli.BoolFlag{
 		Name:     "holesky",
 		Usage:    "Holesky network: pre-configured proof-of-stake test network",
+		Category: flags.EthCategory,
+	}
+	TestnetFlag = &cli.BoolFlag{
+		Name:     "testnet",
+		Usage:    "Testnet network: pre-configured merlion test network",
 		Category: flags.EthCategory,
 	}
 	// Dev mode
@@ -921,6 +926,7 @@ var (
 		GoerliFlag,
 		SepoliaFlag,
 		HoleskyFlag,
+		TestnetFlag,
 	}
 	// NetworkFlags is the flag group of all built-in supported networks.
 	NetworkFlags = append([]cli.Flag{MainnetFlag}, TestnetFlags...)
@@ -949,6 +955,9 @@ func MakeDataDir(ctx *cli.Context) string {
 		}
 		if ctx.Bool(HoleskyFlag.Name) {
 			return filepath.Join(path, "holesky")
+		}
+		if ctx.Bool(TestnetFlag.Name) {
+			return filepath.Join(path, "testnet")
 		}
 		return path
 	}
@@ -995,10 +1004,10 @@ func setNodeUserIdent(ctx *cli.Context, cfg *node.Config) {
 //
 // 1. --bootnodes flag
 // 2. Config file
-// 3. Network preset flags (e.g. --goerli)
+// 3. Network preset flags (e.g. --testnet)
 // 4. default to mainnet nodes
 func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
-	urls := params.MainnetBootnodes
+	urls := params.BitlayerL2MainnetBootnodes
 	if ctx.IsSet(BootnodesFlag.Name) {
 		urls = SplitAndTrim(ctx.String(BootnodesFlag.Name))
 	} else {
@@ -1012,6 +1021,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 			urls = params.SepoliaBootnodes
 		case ctx.Bool(GoerliFlag.Name):
 			urls = params.GoerliBootnodes
+		case ctx.Bool(TestnetFlag.Name):
+			urls = params.BitlayerL2TestnetBootnodes
 		}
 	}
 	cfg.BootstrapNodes = mustParseBootnodes(urls)
@@ -1035,7 +1046,7 @@ func mustParseBootnodes(urls []string) []*enode.Node {
 // setBootstrapNodesV5 creates a list of bootstrap nodes from the command line
 // flags, reverting to pre-configured ones if none have been specified.
 func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
-	urls := params.V5Bootnodes
+	urls := params.BitlayerL2V5Bootnodes
 	switch {
 	case ctx.IsSet(BootnodesFlag.Name):
 		urls = SplitAndTrim(ctx.String(BootnodesFlag.Name))
@@ -1439,6 +1450,8 @@ func SetDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "sepolia")
 	case ctx.Bool(HoleskyFlag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "holesky")
+	case ctx.Bool(TestnetFlag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
 	}
 }
 
@@ -1590,7 +1603,7 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, GoerliFlag, SepoliaFlag, HoleskyFlag)
+	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, GoerliFlag, SepoliaFlag, HoleskyFlag, TestnetFlag)
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 	// Set configurations from CLI flags
 
@@ -1740,10 +1753,10 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	switch {
 	case ctx.Bool(MainnetFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 1
+			cfg.NetworkId = 200901
 		}
-		cfg.Genesis = core.DefaultGenesisBlock()
-		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
+		cfg.Genesis = core.DefaultBitlayerL2GenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.BitlayerL2MainnetGenesisHash)
 	case ctx.Bool(HoleskyFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 17000
@@ -1837,8 +1850,14 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		if !ctx.IsSet(MinerGasPriceFlag.Name) {
 			cfg.Miner.GasPrice = big.NewInt(1)
 		}
+	case ctx.Bool(TestnetFlag.Name):
+		if !ctx.IsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 200810
+		}
+		cfg.Genesis = core.DefaultBitlayerL2TestnetGenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.BitlayerL2TestnetGenesisHash)
 	default:
-		if cfg.NetworkId == 1 {
+		if cfg.NetworkId == 200901 {
 			SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 		}
 	}
@@ -2064,7 +2083,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	var genesis *core.Genesis
 	switch {
 	case ctx.Bool(MainnetFlag.Name):
-		genesis = core.DefaultGenesisBlock()
+		genesis = core.DefaultBitlayerL2GenesisBlock()
 	case ctx.Bool(HoleskyFlag.Name):
 		genesis = core.DefaultHoleskyGenesisBlock()
 	case ctx.Bool(SepoliaFlag.Name):
@@ -2073,6 +2092,8 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultGoerliGenesisBlock()
 	case ctx.Bool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
+	case ctx.Bool(TestnetFlag.Name):
+		genesis = core.DefaultBitlayerL2TestnetGenesisBlock()
 	}
 	return genesis
 }

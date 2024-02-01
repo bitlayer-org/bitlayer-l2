@@ -119,6 +119,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		if err != nil {
 			return nil, nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
+
 		statedb.SetTxContext(tx.Hash(), i)
 		receipt, err := applyTransaction(msg, p.config, gp, statedb, blockNumber, blockHash, tx, usedGas, vmenv, CreatingBloomParallel(&bloomWg))
 		if err != nil {
@@ -168,8 +169,9 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	returnErrBeforeWaitGroup = false
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), withdrawals)
-
+	if err := p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), withdrawals); err != nil {
+		return nil, nil, nil, 0, err
+	}
 	return receipts, allLogs, internalTxs, *usedGas, nil
 }
 
