@@ -109,7 +109,7 @@ func (env *genesisInit) initStaking() error {
 
 	_, err := env.callContract(system.StakingContract, "initialize",
 		contract.Init.Admin,
-		contract.Init.BltAddress,
+		contract.Init.BrcAddress,
 		contract.Init.Epoch,
 		contract.Init.FoundationPool)
 	return err

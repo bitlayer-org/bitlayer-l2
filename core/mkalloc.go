@@ -40,7 +40,7 @@ import (
 
 type initArgs struct {
 	Admin          *big.Int
-	BltAddress     *big.Int
+	BrcAddress     *big.Int
 	Epoch          *big.Int
 	FoundationPool *big.Int
 }
@@ -69,7 +69,7 @@ func makelist(g *core.Genesis) []allocItem {
 		init := &initArgs{}
 		if account.Init != nil {
 			init.Admin = new(big.Int).SetBytes(account.Init.Admin.Bytes())
-			init.BltAddress = new(big.Int).SetBytes(account.Init.BltAddress.Bytes())
+			init.BrcAddress = new(big.Int).SetBytes(account.Init.BrcAddress.Bytes())
 			init.Epoch = account.Init.Epoch
 			init.FoundationPool = new(big.Int).SetBytes(account.Init.FoundationPool.Bytes())
 		}

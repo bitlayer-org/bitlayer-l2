@@ -73,7 +73,7 @@ type Genesis struct {
 // InitArgs represents the args of system contracts initial args
 type Init struct {
 	Admin          common.Address `json:"admin,omitempty"`
-	BltAddress     common.Address `json:"bltAddress,omitempty"`
+	BrcAddress     common.Address `json:"brcAddress,omitempty"`
 	Epoch          *big.Int       `json:"epoch,omitempty"`
 	FoundationPool common.Address `json:"foundationPool,omitempty"`
 }
@@ -845,7 +845,7 @@ func BasicMerlionGenesisBlock(config *params.ChainConfig, initialValidators []co
 
 type initArgs struct {
 	Admin          *big.Int
-	BltAddress     *big.Int
+	BrcAddress     *big.Int
 	Epoch          *big.Int
 	FoundationPool *big.Int
 }
@@ -883,7 +883,7 @@ func decodePrealloc(data string) GenesisAlloc {
 		if account.Init != nil {
 			init := &Init{
 				Admin:          common.BigToAddress(account.Init.Admin),
-				BltAddress:     common.BigToAddress(account.Init.BltAddress),
+				BrcAddress:     common.BigToAddress(account.Init.BrcAddress),
 				Epoch:          account.Init.Epoch,
 				FoundationPool: common.BigToAddress(account.Init.FoundationPool),
 			}
