@@ -33,7 +33,7 @@ var (
 
 	// TODO freddie replace
 	BitlayerL2MainnetGenesisHash = common.HexToHash("0x23c956655b688130edef40c782978e36b6938196ce396e43f4254d566fdb0476")
-	BitlayerL2TestnetGenesisHash = common.HexToHash("0x23c956655b688130edef40c782978e36b6938196ce396e43f4254d566fdb0476")
+	BitlayerL2TestnetGenesisHash = common.HexToHash("0x4419058a4a569535bba3e76b73696b6438f4c5a9bf2689ae7c06f9ab9b0849b0")
 )
 
 func newUint64(val uint64) *uint64 { return &val }

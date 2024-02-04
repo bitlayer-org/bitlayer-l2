@@ -88,7 +88,10 @@ var V5Bootnodes = []string{
 }
 
 var BitlayerL2MainnetBootnodes = []string{}
-var BitlayerL2TestnetBootnodes = []string{}
+var BitlayerL2TestnetBootnodes = []string{
+	"enode://f46dc7356db12e013db29f4e7e2ad6ec670990cbceb6a49972c7a9aa9d50ae6665a81fbb8d529fe8dbc63570d4e00ac8d488d6b618f21406a3bfeb4c2ddfcca2@54.151.195.28:31031",
+	"enode://7a3097ef2961a099cd10303210f162f828b14ce9e406655ea442d0310e8f9e961923f79135245dc49a1b75f2c40044feedeb9be12aa3631ba0bab78d394b82da@52.76.77.111:31031",
+}
 var BitlayerL2V5Bootnodes = []string{}
 
 const dnsPrefix = "enrtree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@"
