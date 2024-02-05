@@ -88,6 +88,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		misc.ApplyDAOHardFork(statedb)
 	}
 
+	if cfg.TraceAction > 0 {
+		tracer = vm.NewActionLogger()
+		cfg.Tracer = tracer
+	}
+
 	var (
 		context = NewEVMBlockContext(header, p.bc, nil)
 		vmenv   = vm.NewEVM(context, vm.TxContext{}, statedb, p.config, cfg)
@@ -95,11 +100,6 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	)
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
-	}
-
-	if cfg.TraceAction > 0 {
-		tracer = vm.NewActionLogger()
-		cfg.Tracer = tracer
 	}
 
 	// preload from and to of txs
