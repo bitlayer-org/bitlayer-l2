@@ -1,0 +1,60 @@
+builds:
+- main: ./cmd/geth
+  id: "1"
+  ldflags:
+    - "-X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser -extldflags '-Wl,-z,stack-size=0x800000'"
+  flags:
+    # - -tags urfave_cli_no_docs,ckzg
+    - -trimpath
+    - -v
+  goos:
+    - linux
+- main: ./cmd/geth
+  id: "2"
+  ldflags:
+    - "-X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser -extldflags -s"
+  flags:
+    # - -tags urfave_cli_no_docs,ckzg
+    - -trimpath
+    - -v
+  goos:
+    - darwin
+    - windows
+  ignore:
+    - goos: darwin
+      goarch: 386
+    - goos: windows
+      goarch: arm64
+
+archives:
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      geth_{{.Os}}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}_{{.Tag}}_{{.ShortCommit}}
+      {{- else }}_{{.Tag}}_{{.ShortCommit}}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+checksum:
+  name_template: 'geth_checksums_{{.Tag}}.txt'
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+  # groups:
+  #   - title: Features
+  #     regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+  #     order: 0
+  #   - title: "Bug fixes"
+  #     regexp: '^.*?bug(\([[:word:]]+\))??!?:.+$'
+  #     order: 1
+  #   - title: Others
+  #     order: 999
