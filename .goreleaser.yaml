@@ -4,7 +4,7 @@ builds:
   ldflags:
     - "-X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser -extldflags '-Wl,-z,stack-size=0x800000'"
   flags:
-    # - -tags urfave_cli_no_docs,ckzg
+    - -tags=urfave_cli_no_docs,ckzg
     - -trimpath
     - -v
   goos:
@@ -14,7 +14,7 @@ builds:
   ldflags:
     - "-X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser -extldflags -s"
   flags:
-    # - -tags urfave_cli_no_docs,ckzg
+    - -tags=urfave_cli_no_docs,ckzg
     - -trimpath
     - -v
   goos:
