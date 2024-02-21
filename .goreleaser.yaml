@@ -1,6 +1,7 @@
 builds:
 - main: ./cmd/geth
   id: "1"
+  binary: geth
   ldflags:
     - "-X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser -extldflags '-Wl,-z,stack-size=0x800000'"
   flags:
@@ -11,6 +12,7 @@ builds:
     - linux
 - main: ./cmd/geth
   id: "2"
+  binary: geth
   ldflags:
     - "-X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser -extldflags -s"
   flags:
