@@ -1,4 +1,4 @@
-## Go Ethereum
+## Bitlayer
 
 Bitlayer is the first Bitcoin security-equivalent layer 2 based on BitVM. It consists an EVM compatible chain that can map BTC ecological assets and facilitate the entry of BTC users.
 
