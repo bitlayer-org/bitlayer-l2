@@ -987,6 +987,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 func (w *worker) fillTransactions(interrupt *atomic.Int32, env *environment) error {
 	pending := w.eth.TxPool().Pending(true)
 
+	log.Info("fillTransactions pending", len(pending))
 	// Split the pending transactions into locals and remotes.
 	localTxs, remoteTxs := make(map[common.Address][]*txpool.LazyTransaction), pending
 	for _, account := range w.eth.TxPool().Locals() {
@@ -996,15 +997,21 @@ func (w *worker) fillTransactions(interrupt *atomic.Int32, env *environment) err
 		}
 	}
 
+	log.Info("fillTransactions localTxs", len(localTxs))
+
 	// Fill the block with all available pending transactions.
 	if len(localTxs) > 0 {
 		txs := newTransactionsByPriceAndNonce(env.signer, localTxs, env.header.BaseFee)
+		log.Info("commitTransactions local")
 		if err := w.commitTransactions(env, txs, interrupt); err != nil {
 			return err
 		}
 	}
+
+	log.Info("fillTransactions remoteTxs", len(remoteTxs))
 	if len(remoteTxs) > 0 {
 		txs := newTransactionsByPriceAndNonce(env.signer, remoteTxs, env.header.BaseFee)
+		log.Info("commitTransactions remote")
 		if err := w.commitTransactions(env, txs, interrupt); err != nil {
 			return err
 		}
