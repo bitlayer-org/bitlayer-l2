@@ -477,7 +477,7 @@ func (pool *LegacyPool) stats() (int, int) {
 	for _, list := range pool.queue {
 		queued += list.Len()
 	}
-	log.Info("pending", len(pending), "queued", len(queued))
+	log.Info("pending", pending, "queued", queued)
 	return pending, queued
 }
 
@@ -531,8 +531,8 @@ func (pool *LegacyPool) Pending(enforceTips bool) map[common.Address][]*txpool.L
 	for addr, list := range pool.pending {
 		txs := list.Flatten()
 		log.Info("legacy pending addr >> ", addr.String())
-
-		log.Info("legacy pending txs 1 >> ", len(txs))
+		log.Info("legacy pending list len >> ", list.Len())
+		log.Info("legacy pending txs 1 >> ", len(txs),)
 
 		// If the miner requests tip enforcement, cap the lists now
 		if enforceTips && !pool.locals.contains(addr) {
