@@ -477,6 +477,7 @@ func (pool *LegacyPool) stats() (int, int) {
 	for _, list := range pool.queue {
 		queued += list.Len()
 	}
+	log.Info("pending", len(pending), "queued", len(queued))
 	return pending, queued
 }
 
@@ -526,11 +527,16 @@ func (pool *LegacyPool) Pending(enforceTips bool) map[common.Address][]*txpool.L
 	defer pool.mu.Unlock()
 
 	pending := make(map[common.Address][]*txpool.LazyTransaction, len(pool.pending))
+	log.Info("legacy pending origin ", len(pool.pending))
 	for addr, list := range pool.pending {
 		txs := list.Flatten()
+		log.Info("legacy pending addr >> ", addr.String())
+
+		log.Info("legacy pending txs 1 >> ", len(txs))
 
 		// If the miner requests tip enforcement, cap the lists now
 		if enforceTips && !pool.locals.contains(addr) {
+			log.Info(" enforceTips && !pool.locals.contains(addr)")
 			for i, tx := range txs {
 				if tx.EffectiveGasTipIntCmp(pool.gasTip.Load(), pool.priced.urgent.baseFee) < 0 {
 					txs = txs[:i]
@@ -538,6 +544,8 @@ func (pool *LegacyPool) Pending(enforceTips bool) map[common.Address][]*txpool.L
 				}
 			}
 		}
+		log.Info("legacy pending txs 2 >> ", len(txs))
+
 		if len(txs) > 0 {
 			lazies := make([]*txpool.LazyTransaction, len(txs))
 			for i := 0; i < len(txs); i++ {
@@ -555,6 +563,7 @@ func (pool *LegacyPool) Pending(enforceTips bool) map[common.Address][]*txpool.L
 			pending[addr] = lazies
 		}
 	}
+	log.Info("legacy pending return", len(pending))
 	return pending
 }
 
