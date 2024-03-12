@@ -341,6 +341,7 @@ func (tx *Transaction) GasTipCapCmp(other *Transaction) int {
 
 // GasTipCapIntCmp compares the gasTipCap of the transaction against the given gasTipCap.
 func (tx *Transaction) GasTipCapIntCmp(other *big.Int) int {
+	log.Info("Transaction GasTipCapIntCmp other ", other.String(), tx.inner.gasTipCap().String())
 	return tx.inner.gasTipCap().Cmp(other)
 }
 
@@ -349,6 +350,7 @@ func (tx *Transaction) GasTipCapIntCmp(other *big.Int) int {
 // the actual negative value, _and_ ErrGasFeeCapTooLow
 func (tx *Transaction) EffectiveGasTip(baseFee *big.Int) (*big.Int, error) {
 	if baseFee == nil {
+		log.Info("Transaction EffectiveGasTip base fee is nil ", tx.GasTipCap().String())
 		return tx.GasTipCap(), nil
 	}
 	var err error
@@ -377,8 +379,11 @@ func (tx *Transaction) EffectiveGasTipCmp(other *Transaction, baseFee *big.Int) 
 // EffectiveGasTipIntCmp compares the effective gasTipCap of a transaction to the given gasTipCap.
 func (tx *Transaction) EffectiveGasTipIntCmp(other *big.Int, baseFee *big.Int) int {
 	if baseFee == nil {
+		log.Info(">>  EffectiveGasTipIntCmp GasTipCapIntCmp base is nil other ", other.String(),"baseFee", baseFee.String() )
 		return tx.GasTipCapIntCmp(other)
 	}
+	log.Info(">>  EffectiveGasTipIntCmp EffectiveGasTipValue other ", other.String(),"baseFee", baseFee.String(), "xxx",tx.EffectiveGasTipValue(baseFee).String() )
+
 	return tx.EffectiveGasTipValue(baseFee).Cmp(other)
 }
 

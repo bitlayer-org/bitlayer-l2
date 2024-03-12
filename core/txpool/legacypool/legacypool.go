@@ -530,6 +530,7 @@ func (pool *LegacyPool) Pending(enforceTips bool) map[common.Address][]*txpool.L
 	log.Info("legacy pending origin ", len(pool.pending))
 	listLen := 0
 	listTxs := 0
+	listTxs2 := 0
 	for addr, list := range pool.pending {
 		txs := list.Flatten()
 		listLen += list.Len()
@@ -539,12 +540,14 @@ func (pool *LegacyPool) Pending(enforceTips bool) map[common.Address][]*txpool.L
 		if enforceTips && !pool.locals.contains(addr) {
 			for i, tx := range txs {
 				if tx.EffectiveGasTipIntCmp(pool.gasTip.Load(), pool.priced.urgent.baseFee) < 0 {
+					log.Info("pool EffectiveGasTipIntCmp i", i, "len txs", len(txs))
 					txs = txs[:i]
 					break
 				}
 			}
 		}
 
+		listTxs2 += len(txs)
 		if len(txs) > 0 {
 			lazies := make([]*txpool.LazyTransaction, len(txs))
 			for i := 0; i < len(txs); i++ {
@@ -562,7 +565,7 @@ func (pool *LegacyPool) Pending(enforceTips bool) map[common.Address][]*txpool.L
 			pending[addr] = lazies
 		}
 	}
-	log.Info("legacy pending return", len(pending), "listLen", listLen, "listTxs", listTxs)
+	log.Info("legacy pending return", len(pending), "listLen", listLen, "listTxs", listTxs, "listTxs2", listTxs2)
 	return pending
 }
 
