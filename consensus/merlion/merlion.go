@@ -534,6 +534,27 @@ func (c *Merlion) verifySeal(chain consensus.ChainHeaderReader, header *types.He
 	return nil
 }
 
+func (c *Merlion) PrepareExtra(chain consensus.ChainHeaderReader, header *types.Header) error {
+	// Ensure the extra data has all its components
+	if len(header.Extra) < extraVanity {
+		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, extraVanity-len(header.Extra))...)
+	}
+	header.Extra = header.Extra[:extraVanity]
+	number := header.Number.Uint64()
+	if number%c.config.Epoch == 0 {
+		newSortedValidators, err := c.getTopValidators(chain, header)
+		if err != nil {
+			return err
+		}
+
+		for _, validator := range newSortedValidators {
+			header.Extra = append(header.Extra, validator.Bytes()...)
+		}
+	}
+	header.Extra = append(header.Extra, make([]byte, extraSeal)...)
+	return nil
+}
+
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (c *Merlion) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
@@ -550,23 +571,10 @@ func (c *Merlion) Prepare(chain consensus.ChainHeaderReader, header *types.Heade
 	// Set the correct difficulty
 	header.Difficulty = calcDifficulty(snap, c.validator)
 
-	// Ensure the extra data has all its components
-	if len(header.Extra) < extraVanity {
-		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, extraVanity-len(header.Extra))...)
+	err = c.PrepareExtra(chain, header)
+	if err != nil {
+		return err
 	}
-	header.Extra = header.Extra[:extraVanity]
-
-	if number%c.config.Epoch == 0 {
-		newSortedValidators, err := c.getTopValidators(chain, header)
-		if err != nil {
-			return err
-		}
-
-		for _, validator := range newSortedValidators {
-			header.Extra = append(header.Extra, validator.Bytes()...)
-		}
-	}
-	header.Extra = append(header.Extra, make([]byte, extraSeal)...)
 
 	// Mix digest is reserved for now, set to empty
 	header.MixDigest = common.Hash{}

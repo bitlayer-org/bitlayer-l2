@@ -135,4 +135,5 @@ type PoW interface {
 // MerlionEngine is a consensus engine based on delegate proof-of-stake.
 type MerlionEngine interface {
 	Engine
+	PrepareExtra(chain ChainHeaderReader, header *types.Header) error
 }
