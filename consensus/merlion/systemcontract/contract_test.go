@@ -86,26 +86,30 @@ func TestDistributeBlockFee(t *testing.T) {
 
 	assert.NoError(t, UpdateActiveValidatorSet(ctx, GenesisValidators))
 
-	val0 := ctx.Statedb.GetBalance(GenesisValidators[0])
-	val1 := ctx.Statedb.GetBalance(GenesisValidators[1])
-	val2 := ctx.Statedb.GetBalance(GenesisValidators[2])
-	fpaddress := common.HexToAddress("0x89407661aEcC10DD22a0385eF96860c3A4701c5c")
-	fp := ctx.Statedb.GetBalance(fpaddress)
+	// val0 := ctx.Statedb.GetBalance(GenesisValidators[0])
+	// val1 := ctx.Statedb.GetBalance(GenesisValidators[1])
+	// val2 := ctx.Statedb.GetBalance(GenesisValidators[2])
+	// fpaddress := common.HexToAddress("0x89407661aEcC10DD22a0385eF96860c3A4701c5c")
+	// fp := ctx.Statedb.GetBalance(fpaddress)
+
+	feeStaking := ctx.Statedb.GetBalance(system.StakingContract)
 
 	fee := big.NewInt(1000000000000000000)
 	ctx.Statedb.AddBalance(EngineCaller, fee)
 	assert.NoError(t, DistributeBlockFee(ctx, fee))
 
-	val0e := ctx.Statedb.GetBalance(GenesisValidators[0])
-	val1e := ctx.Statedb.GetBalance(GenesisValidators[1])
-	val2e := ctx.Statedb.GetBalance(GenesisValidators[2])
-	fpe := ctx.Statedb.GetBalance(fpaddress)
+	// val0e := ctx.Statedb.GetBalance(GenesisValidators[0])
+	// val1e := ctx.Statedb.GetBalance(GenesisValidators[1])
+	// val2e := ctx.Statedb.GetBalance(GenesisValidators[2])
+	// fpe := ctx.Statedb.GetBalance(fpaddress)
 
-	fmt.Printf("before distribute val0 %s val1 %s val2 %s pool %s\n", val0.String(), val1.String(), val2.String(), fp)
-	fmt.Printf("after  distribute val0 %s val1 %s val2 %s pool %s\n", val0e.String(), val1e.String(), val2e.String(), fpe)
+	feeStakingE := ctx.Statedb.GetBalance(system.StakingContract)
 
-	assert.Equal(t, big.NewInt(0), fp)
-	assert.Equal(t, big.NewInt(200000000000000002), fpe)
+	// fmt.Printf("before distribute val0 %s val1 %s val2 %s pool %s\n", val0.String(), val1.String(), val2.String(), fp)
+	// fmt.Printf("after  distribute val0 %s val1 %s val2 %s pool %s\n", val0e.String(), val1e.String(), val2e.String(), fpe)
+
+	println("feeStaking ", feeStaking.String(), "feeStakingE", feeStakingE.String())
+	assert.Equal(t, feeStaking.Add(feeStaking, fee), feeStakingE)
 }
 
 func TestLazyPunish(t *testing.T) {
