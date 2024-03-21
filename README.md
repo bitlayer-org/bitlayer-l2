@@ -18,9 +18,16 @@ Bitlayer innovatively utilizes the DLC/LN protocol to enable trustless bidirecti
 
 ## Architecture
 
-![arch](./architecture.jpg)
+![arch](./architecture.png)
 
 Bitlayer subscribes to the typical model of an Optimistic Rollup equivalent.
+
+
+## Roadmap
+
+![roadmap](./roadmap.png)
+
+Bitlayer-l2 is the geth client in MAINNET-V1.
 
 ## Building the source
 
