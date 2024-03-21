@@ -1,9 +1,6 @@
 # Bitlayer Overview
 
-Bitlayer is the first Bitcoin security-equivalent layer 2 based on BitVM. It consists an EVM compatible chain/sequencer that can map BTC ecological assets and facilitate the entry of BTC users.
-
-Bitlayer-l2 is the Official Golang implementation of the Bitlayer l2. It is a fork of [geth](https://github.com/ethereum/go-ethereum)
-
+Bitlayer is the first Bitcoin security-equivalent layer 2 based on BitVM. It consists an EVM compatible chain/sequencer(bitlayer-l2) that can map BTC ecological assets and facilitate the entry of BTC users. Bitlayer-l2 is a fork of [geth](https://github.com/ethereum/go-ethereum).
 
 ## Bitlayer’s Value Propositions
 Due to the technical nature of Bitcoin, there exists a trade-off between "Security and Turing completeness" for Bitcoin layer2 solutions.
@@ -18,6 +15,7 @@ Bitlayer's core objective is to address the trade-off between security (trustles
 3. L1 verification of the validity of L2 state transitions
 
 Bitlayer innovatively utilizes the DLC/LN protocol to enable trustless bidirectional flow of signals/assets. It introduces VMs (EVM, SolanaVM, MoveVM, etc.) to support a wide range of state transition expressions.
+
 ## Architecture
 
 ![arch](./architecture.jpg)
