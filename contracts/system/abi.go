@@ -26,7 +26,7 @@ import (
 
 const (
 	// StakingABI contains methods to interactive with Staking contract.
-	StakingABI = ` [
+	StakingABI = `[
 		{
 		  "inputs": [
 			{
@@ -550,6 +550,19 @@ const (
 		  "type": "function"
 		},
 		{
+		  "inputs": [
+			{
+			  "internalType": "address payable",
+			  "name": "_foundationPool",
+			  "type": "address"
+			}
+		  ],
+		  "name": "changeFoundationPool",
+		  "outputs": [],
+		  "stateMutability": "nonpayable",
+		  "type": "function"
+		},
+		{
 		  "inputs": [],
 		  "name": "decreaseMissedBlocksCounter",
 		  "outputs": [],
@@ -978,30 +991,6 @@ const (
 		  "name": "updateActiveValidatorSet",
 		  "outputs": [],
 		  "stateMutability": "nonpayable",
-		  "type": "function"
-		},
-		{
-		  "inputs": [
-			{
-			  "internalType": "address",
-			  "name": "",
-			  "type": "address"
-			}
-		  ],
-		  "name": "valInfos",
-		  "outputs": [
-			{
-			  "internalType": "uint256",
-			  "name": "stake",
-			  "type": "uint256"
-			},
-			{
-			  "internalType": "uint256",
-			  "name": "unWithdrawn",
-			  "type": "uint256"
-			}
-		  ],
-		  "stateMutability": "view",
 		  "type": "function"
 		},
 		{
