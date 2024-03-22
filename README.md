@@ -31,8 +31,6 @@ Bitlayer-l2 is the geth client in MAINNET-V1.
 
 ## Building the source
 
-For prerequisites and detailed build instructions please read the [Installation Instructions](https://geth.ethereum.org/docs/getting-started/installing-geth).
-
 Building `geth` requires both a Go (version 1.21 or later) and a C compiler. You can install
 them using your favourite package manager. Once the dependencies are installed, run
 
