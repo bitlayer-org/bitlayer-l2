@@ -75,15 +75,16 @@ func newTesterAccountPool() *testerAccountPool {
 
 // checkpoint creates a Merlion checkpoint signer section from the provided list
 // of authorized signers and embeds it into the provided header.
-func (ap *testerAccountPool) checkpoint(header *types.Header, signers []string) {
+func (ap *testerAccountPool) checkpoint(Extra []byte, signers []string) []byte {
 	auths := make([]common.Address, len(signers))
 	for i, signer := range signers {
 		auths[i] = ap.address(signer)
 	}
 	sort.Sort(systemcontract.AddrAscend(auths))
 	for i, auth := range auths {
-		copy(header.Extra[extraVanity+i*common.AddressLength:], auth.Bytes())
+		copy(Extra[extraVanity+i*common.AddressLength:], auth.Bytes())
 	}
+	return Extra
 }
 
 // address retrieves the Ethereum address of a tester account by label, creating
@@ -122,7 +123,7 @@ func (ap *testerAccountPool) genTx(change testerValidatorChange, nonce uint64, s
 	case validatorAdd:
 		method := "registerValidator"
 		// args: validator, manager, rate(base on 100), stake, acceptDelegation(true/false)
-		data, err := stakingAbi.Pack(method, valAddr, ap.adminAddr, big.NewInt(10), big.NewInt(3000000), true)
+		data, err := stakingAbi.Pack(method, valAddr, ap.adminAddr, big.NewInt(20), big.NewInt(3000000), true)
 		if err != nil {
 			return nil, err
 		}
@@ -205,7 +206,19 @@ func TestMerlion(t *testing.T) {
 			epoch:    6,
 			chainLen: 5,
 			results:  []string{"A"},
-		},
+		}, /*{
+			// Single signer, add one other, effective on next epoch
+			signers: []string{"A"},
+			changes: []testerValidatorChange{
+				{account: "B", blockNum: 3, op: validatorAdd},
+				{account: "B", blockNum: 3, op: validatorInc, value: 1},
+			},
+			miners:      []string{"A", "A", "A", "A", "A", "A", "B"},
+			epoch:       2,
+			chainLen:    7,
+			results:     []string{"A", "B"},
+			checkpoints: map[int][]string{2: {"A"}, 4: {"A", "B"}},
+		},*/
 	}
 	// Run through the scenarios and test them
 	for i, tc := range testcases {
@@ -269,12 +282,33 @@ func runMerlionTest(t *testing.T, testID int, tc *testcase) {
 	//tx signer
 	signer := types.LatestSigner(&config)
 
+	var lastCheckpointExtra []byte
 	blocks, _ := core.GenerateChain(&config, genesisBlock, engine, db, chainLen, func(idx int, gen *core.BlockGen) {
 		// j is not block number, but index which starts from 0.
 		// Cast the vote contained in this block
 		gen.SetCoinbase(accounts.address(tc.miners[idx]))
 		// Since the `validator` field is empty in engine, so the difficulty from chainMaker is not correct.
 		gen.SetDifficulty(diffInTurn)
+
+		Extra := make([]byte, extraVanity+extraSeal)
+		if uint64(idx+1)%tc.epoch == 0 {
+			if tc.checkpoints != nil {
+				auths, exist := tc.checkpoints[idx+1]
+				if exist {
+					Extra = make([]byte, extraVanity+len(auths)*common.AddressLength+extraSeal)
+					Extra = accounts.checkpoint(Extra, auths)
+					lastCheckpointExtra = make([]byte, len(Extra))
+					copy(lastCheckpointExtra, Extra)
+				} else if len(lastCheckpointExtra) > 0 {
+					Extra = make([]byte, len(lastCheckpointExtra))
+					copy(Extra, lastCheckpointExtra)
+				} else {
+					t.Errorf("need to set checkpoints correctly")
+					return
+				}
+			}
+		}
+		gen.SetExtra(Extra)
 
 		for _, change := range tc.changes {
 			if change.blockNum == (idx + 1) {
@@ -283,41 +317,15 @@ func runMerlionTest(t *testing.T, testID int, tc *testcase) {
 					panic("genTx: " + err.Error())
 				}
 				gen.AddTxWithChain(chain, tx)
-				// receipt := gen.AddTxWithChain(chain, tx)
-				// if change.op == validatorAdd {
-				// 	if receipt.Status == 0 {
-				// 		panic("add validator failed")
-				// 	}
-				// }
-				//t.Logf("info: op=%v, gasUesd=%d\n", change.op, receipt.GasUsed)
 			}
 		}
 	})
 	// Iterate through the blocks and seal them individually
-	var lastCheckpointExtra []byte
 	for i, block := range blocks {
 		// Get the header and prepare it for signing
 		header := block.Header()
 		if i > 0 {
 			header.ParentHash = blocks[i-1].Hash()
-		}
-		header.Extra = make([]byte, extraVanity+extraSeal)
-		if uint64(i+1)%tc.epoch == 0 {
-			if tc.checkpoints != nil {
-				auths, exist := tc.checkpoints[i+1]
-				if exist {
-					header.Extra = make([]byte, extraVanity+len(auths)*common.AddressLength+extraSeal)
-					accounts.checkpoint(header, auths)
-					lastCheckpointExtra = make([]byte, len(header.Extra))
-					copy(lastCheckpointExtra, header.Extra)
-				} else if len(lastCheckpointExtra) > 0 {
-					header.Extra = make([]byte, len(lastCheckpointExtra))
-					copy(header.Extra, lastCheckpointExtra)
-				} else {
-					t.Errorf("need to set checkpoints correctly")
-					return
-				}
-			}
 		}
 
 		header.Difficulty = diffInTurn // Ignored, we just need a valid number

@@ -339,10 +339,6 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		if config.DAOForkSupport && config.DAOForkBlock != nil && config.DAOForkBlock.Cmp(b.header.Number) == 0 {
 			misc.ApplyDAOHardFork(statedb)
 		}
-
-		if merlion, ok := engine.(consensus.MerlionEngine); ok {
-			merlion.PrepareExtra(cm, b.header)
-		}
 		// Execute any user modifications to the block
 		if gen != nil {
 			gen(i, b)
