@@ -12,12 +12,12 @@ import (
 func ReadInternalTxsRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 	var data []byte
 	db.ReadAncients(func(reader ethdb.AncientReaderOp) error {
-		// Check if the data is in ancients
-		if isCanon(reader, number, hash) {
-			data, _ = reader.Ancient(freezerInternalTxTable, number)
-			return nil
-		}
-		// If not, try reading from leveldb
+		// // // Check if the data is in ancients
+		// if isCanon(reader, number, hash) {
+		// 	data, _ = reader.Ancient(freezerInternalTxTable, number)
+		// 	return nil
+		// }
+		// // If not, try reading from leveldb
 		data, _ = db.Get(blockInternalTxsKey(number, hash))
 		return nil
 	})
