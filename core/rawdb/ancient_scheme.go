@@ -36,7 +36,7 @@ const (
 	ChainFreezerDifficultyTable = "diffs"
 
 	// freezerInternalTxTable indicates the name of the freezer internal tx table.
-	freezerInternalTxTable = "internalTx"
+	// freezerInternalTxTable = "internalTx"
 )
 
 // chainFreezerNoSnappy configures whether compression is disabled for the ancient-tables.
