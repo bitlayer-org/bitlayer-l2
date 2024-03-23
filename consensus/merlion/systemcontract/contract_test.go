@@ -22,9 +22,9 @@ import (
 )
 
 var GenesisValidators = []common.Address{
-	common.HexToAddress("0x0942737e33b1AD9B028bb4FAb46677B1e5371D79"),
-	common.HexToAddress("0x7D63E9587ad75D73793a8384Dfc8f54ccdbE0CB7"),
-	common.HexToAddress("0xd502b3B6B5D11C8E174FC21F7A2A0C980fEff930"),
+	common.HexToAddress("0x2B5AD5c4795c026514f8317c7a215E218DcCD6cF"),
+	common.HexToAddress("0x6813Eb9362372EEF6200f3b1dbC3f819671cBA69"),
+	common.HexToAddress("0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf"),
 }
 
 func TestGetTopValidators(t *testing.T) {
@@ -86,27 +86,13 @@ func TestDistributeBlockFee(t *testing.T) {
 
 	assert.NoError(t, UpdateActiveValidatorSet(ctx, GenesisValidators))
 
-	// val0 := ctx.Statedb.GetBalance(GenesisValidators[0])
-	// val1 := ctx.Statedb.GetBalance(GenesisValidators[1])
-	// val2 := ctx.Statedb.GetBalance(GenesisValidators[2])
-	// fpaddress := common.HexToAddress("0x89407661aEcC10DD22a0385eF96860c3A4701c5c")
-	// fp := ctx.Statedb.GetBalance(fpaddress)
-
 	feeStaking := ctx.Statedb.GetBalance(system.StakingContract)
 
 	fee := big.NewInt(1000000000000000000)
 	ctx.Statedb.AddBalance(EngineCaller, fee)
 	assert.NoError(t, DistributeBlockFee(ctx, fee))
 
-	// val0e := ctx.Statedb.GetBalance(GenesisValidators[0])
-	// val1e := ctx.Statedb.GetBalance(GenesisValidators[1])
-	// val2e := ctx.Statedb.GetBalance(GenesisValidators[2])
-	// fpe := ctx.Statedb.GetBalance(fpaddress)
-
 	feeStakingE := ctx.Statedb.GetBalance(system.StakingContract)
-
-	// fmt.Printf("before distribute val0 %s val1 %s val2 %s pool %s\n", val0.String(), val1.String(), val2.String(), fp)
-	// fmt.Printf("after  distribute val0 %s val1 %s val2 %s pool %s\n", val0e.String(), val1e.String(), val2e.String(), fpe)
 
 	println("feeStaking ", feeStaking.String(), "feeStakingE", feeStakingE.String())
 	assert.Equal(t, feeStaking.Add(feeStaking, fee), feeStakingE)

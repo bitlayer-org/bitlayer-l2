@@ -63,7 +63,9 @@ type testerAccountPool struct {
 }
 
 func newTesterAccountPool() *testerAccountPool {
-	adm, _ := crypto.GenerateKey()
+	// adm, _ := crypto.GenerateKey()
+	sks := "0000000000000000000000000000000000000000000000000000000000000004"
+	adm, _ := crypto.HexToECDSA(sks)
 	addr := crypto.PubkeyToAddress(adm.PublicKey)
 	return &testerAccountPool{
 		accounts:  make(map[string]*ecdsa.PrivateKey),
@@ -96,7 +98,8 @@ func (ap *testerAccountPool) address(account string) common.Address {
 	}
 	// Ensure we have a persistent key for the account
 	if ap.accounts[account] == nil {
-		ap.accounts[account], _ = crypto.GenerateKey()
+		sks := "000000000000000000000000000000000000000000000000000000000000000" + account
+		ap.accounts[account], _ = crypto.HexToECDSA(sks)
 	}
 	// Resolve and return the Ethereum address
 	addr := crypto.PubkeyToAddress(ap.accounts[account].PublicKey)
@@ -123,18 +126,20 @@ func (ap *testerAccountPool) genTx(change testerValidatorChange, nonce uint64, s
 	case validatorAdd:
 		method := "registerValidator"
 		// args: validator, manager, rate(base on 100), stake, acceptDelegation(true/false)
-		data, err := stakingAbi.Pack(method, valAddr, ap.adminAddr, big.NewInt(20), big.NewInt(3000000), true)
+		stakeAmount, _ := new(big.Int).SetString("60000000000000000000000", 10)
+		data, err := stakingAbi.Pack(method, valAddr, ap.adminAddr, big.NewInt(20), stakeAmount, true)
 		if err != nil {
 			return nil, err
 		}
-		return types.SignTx(types.NewTransaction(nonce, system.StakingContract, toWei(50000), 3000000, big.NewInt(params.GWei), data), signer, ap.admin)
+		return types.SignTx(types.NewTransaction(nonce, system.StakingContract, nil, 3000000, big.NewInt(params.GWei), data), signer, ap.admin)
 	case validatorInc:
 		method := "addStake"
-		data, err := stakingAbi.Pack(method, valAddr, big.NewInt(10))
+		stakeAmount, _ := new(big.Int).SetString("60000000000000000000000", 10)
+		data, err := stakingAbi.Pack(method, valAddr, stakeAmount)
 		if err != nil {
 			return nil, err
 		}
-		return types.SignTx(types.NewTransaction(nonce, system.StakingContract, toWei(change.value), 1000000, big.NewInt(params.GWei), data), signer, ap.admin)
+		return types.SignTx(types.NewTransaction(nonce, system.StakingContract, nil, 1000000, big.NewInt(params.GWei), data), signer, ap.admin)
 	case validatorExit:
 		method := "exitStaking"
 		data, err := stakingAbi.Pack(method, valAddr)
@@ -206,7 +211,7 @@ func TestMerlion(t *testing.T) {
 			epoch:    6,
 			chainLen: 5,
 			results:  []string{"A"},
-		}, /*{
+		}, {
 			// Single signer, add one other, effective on next epoch
 			signers: []string{"A"},
 			changes: []testerValidatorChange{
@@ -218,7 +223,48 @@ func TestMerlion(t *testing.T) {
 			chainLen:    7,
 			results:     []string{"A", "B"},
 			checkpoints: map[int][]string{2: {"A"}, 4: {"A", "B"}},
-		},*/
+		}, {
+			signers: []string{"A"},
+			changes: []testerValidatorChange{
+				{account: "B", blockNum: 3, op: validatorAdd},
+				{account: "B", blockNum: 4, op: validatorInc, value: 1},
+			},
+			miners:   []string{"A", "A", "A", "A", "A"},
+			epoch:    6,
+			chainLen: 5,
+			results:  []string{"A"},
+		}, {
+			signers: []string{"A"},
+			changes: []testerValidatorChange{
+				{account: "B", blockNum: 3, op: validatorAdd},
+				{account: "B", blockNum: 4, op: validatorInc, value: 1},
+			},
+			miners:   []string{"A", "A", "A", "A", "A", "A", "A"},
+			epoch:    3,
+			chainLen: 7,
+			results:  []string{"A"},
+			checkpoints: map[int][]string{
+				3: {"A"},
+				6: {"A", "B"},
+			},
+		}, {
+			signers: []string{"A"},
+			changes: []testerValidatorChange{
+				{account: "B", blockNum: 3, op: validatorAdd},
+				{account: "B", blockNum: 4, op: validatorInc, value: 1},
+				{account: "C", blockNum: 6, op: validatorAdd},
+				{account: "C", blockNum: 7, op: validatorInc, value: 1},
+			},
+			miners:   []string{"A", "A", "A", "A", "A", "A", "A", "A", "A", "B"},
+			epoch:    3,
+			chainLen: 10,
+			results:  []string{"A", "B"},
+			checkpoints: map[int][]string{
+				3: {"A"},
+				6: {"A", "B"},
+				9: {"A", "B", "C"},
+			},
+		},
 	}
 	// Run through the scenarios and test them
 	for i, tc := range testcases {
@@ -316,7 +362,9 @@ func runMerlionTest(t *testing.T, testID int, tc *testcase) {
 				if err != nil {
 					panic("genTx: " + err.Error())
 				}
+				println("AddTxWithChain")
 				gen.AddTxWithChain(chain, tx)
+				println("AddTxWithChain done")
 			}
 		}
 	})
