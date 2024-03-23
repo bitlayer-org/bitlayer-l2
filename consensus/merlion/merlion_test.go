@@ -32,9 +32,9 @@ const (
 	validatorExit
 )
 
-var (
-	wei = big.NewInt(1e18)
-)
+// var (
+// 	wei = big.NewInt(1e18)
+// )
 
 var (
 	stakingAbi abi.ABI
@@ -159,10 +159,10 @@ type testerValidatorChange struct {
 	value    uint64
 }
 
-func toWei(cube uint64) *big.Int {
-	v := new(big.Int).SetUint64(cube)
-	return v.Mul(v, wei)
-}
+// func toWei(cube uint64) *big.Int {
+// 	v := new(big.Int).SetUint64(cube)
+// 	return v.Mul(v, wei)
+// }
 
 // type ValidatorRegistered struct {
 // 	val            common.Address
