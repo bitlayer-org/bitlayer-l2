@@ -362,9 +362,7 @@ func runMerlionTest(t *testing.T, testID int, tc *testcase) {
 				if err != nil {
 					panic("genTx: " + err.Error())
 				}
-				println("AddTxWithChain")
 				gen.AddTxWithChain(chain, tx)
-				println("AddTxWithChain done")
 			}
 		}
 	})
