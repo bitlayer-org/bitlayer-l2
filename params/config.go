@@ -23,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// TODO
 // Genesis hashes to enforce below configs on.
 var (
 	MainnetGenesisHash = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
@@ -31,8 +30,7 @@ var (
 	SepoliaGenesisHash = common.HexToHash("0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9")
 	GoerliGenesisHash  = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
 
-	// TODO freddie replace
-	BitlayerL2MainnetGenesisHash = common.HexToHash("0x23c956655b688130edef40c782978e36b6938196ce396e43f4254d566fdb0476")
+	BitlayerL2MainnetGenesisHash = common.HexToHash("0x41b008c6b9094424b1cda32f95771258e78752390434df8e4456a2688ea16d7c")
 	BitlayerL2TestnetGenesisHash = common.HexToHash("0x4419058a4a569535bba3e76b73696b6438f4c5a9bf2689ae7c06f9ab9b0849b0")
 )
 

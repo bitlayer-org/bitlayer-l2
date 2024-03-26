@@ -104,8 +104,8 @@ func (api *API) Status() (*status, error) {
 	var (
 		numBlocks = uint64(64)
 		header    = api.chain.CurrentHeader()
-		diff      = uint64(0)
-		optimals  = 0
+		// diff      = uint64(0)
+		optimals = 0
 	)
 	snap, err := api.merlion.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil)
 	if err != nil {
@@ -132,7 +132,7 @@ func (api *API) Status() (*status, error) {
 		if h.Difficulty.Cmp(diffInTurn) == 0 {
 			optimals++
 		}
-		diff += h.Difficulty.Uint64()
+		// diff += h.Difficulty.Uint64()
 		sealer, err := api.merlion.Author(h)
 		if err != nil {
 			return nil, err
