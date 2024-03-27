@@ -218,8 +218,8 @@ func (oracle *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 	}
 	if head.GasUsed < head.GasLimit/oracle.backend.ChainConfig().ElasticityMultiplier() {
 		if price.Cmp(oracle.priceLimit) > 0 {
+			log.Debug(">>>>> SuggestTipCap price ", price.String(), "is bigger than priceLimit ", oracle.priceLimit.String(), "head.Number", head.Number.String(), "head.GasUsed", head.GasUsed, "head.GasLimit", head.GasLimit)
 			price = new(big.Int).Set(oracle.priceLimit)
-			log.Debug("SuggestTipCap price ", price.String(), "is bigger than priceLimit ", oracle.priceLimit.String(), "head.Number", head.Number.String(), "head.GasUsed", head.GasUsed, "head.GasLimit", head.GasLimit)
 		}
 	}
 	if price.Cmp(oracle.maxPrice) > 0 {
@@ -229,7 +229,6 @@ func (oracle *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 	oracle.lastHead = headHash
 	oracle.lastPrice = price
 	oracle.cacheLock.Unlock()
-
 	return new(big.Int).Set(price), nil
 }
 
