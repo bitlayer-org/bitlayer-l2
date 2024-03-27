@@ -216,6 +216,7 @@ func (oracle *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 		slices.SortFunc(results, func(a, b *big.Int) int { return a.Cmp(b) })
 		price = results[(len(results)-1)*oracle.percentile/100]
 	}
+
 	if head.GasUsed < head.GasLimit/oracle.backend.ChainConfig().ElasticityMultiplier() {
 		if price.Cmp(oracle.priceLimit) > 0 {
 			log.Debug(">>>>> SuggestTipCap price ", price.String(), "is bigger than priceLimit ", oracle.priceLimit.String(), "head.Number", head.Number.String(), "head.GasUsed", head.GasUsed, "head.GasLimit", head.GasLimit)
