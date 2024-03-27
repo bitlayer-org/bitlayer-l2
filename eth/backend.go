@@ -272,6 +272,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.Miner.GasPrice
 	}
+	gpoParams.PriceLimit = eth.config.TxPool.PriceLimit
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
 
 	// Setup DNS discovery iterators.

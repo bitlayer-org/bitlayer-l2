@@ -47,6 +47,7 @@ type Config struct {
 	Default          *big.Int `toml:",omitempty"`
 	MaxPrice         *big.Int `toml:",omitempty"`
 	IgnorePrice      *big.Int `toml:",omitempty"`
+	PriceLimit       uint64
 }
 
 // OracleBackend includes all necessary background APIs for oracle.
@@ -67,6 +68,7 @@ type Oracle struct {
 	lastPrice   *big.Int
 	maxPrice    *big.Int
 	ignorePrice *big.Int
+	priceLimit  *big.Int
 	cacheLock   sync.RWMutex
 	fetchLock   sync.Mutex
 
@@ -104,6 +106,9 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 	} else if ignorePrice.Int64() > 0 {
 		log.Info("Gasprice oracle is ignoring threshold set", "threshold", ignorePrice)
 	}
+
+	priceLimit := new(big.Int).SetUint64(params.PriceLimit)
+	log.Info("Gasprice oracle priceLimit", priceLimit.String())
 	maxHeaderHistory := params.MaxHeaderHistory
 	if maxHeaderHistory < 1 {
 		maxHeaderHistory = 1
@@ -114,7 +119,6 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 		maxBlockHistory = 1
 		log.Warn("Sanitizing invalid gasprice oracle max block history", "provided", params.MaxBlockHistory, "updated", maxBlockHistory)
 	}
-
 	cache := lru.NewCache[cacheKey, processedFees](2048)
 	headEvent := make(chan core.ChainHeadEvent, 1)
 	backend.SubscribeChainHeadEvent(headEvent)
@@ -133,6 +137,7 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 		lastPrice:        params.Default,
 		maxPrice:         maxPrice,
 		ignorePrice:      ignorePrice,
+		priceLimit:       priceLimit,
 		checkBlocks:      blocks,
 		percentile:       percent,
 		maxHeaderHistory: maxHeaderHistory,
@@ -210,6 +215,12 @@ func (oracle *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 	if len(results) > 0 {
 		slices.SortFunc(results, func(a, b *big.Int) int { return a.Cmp(b) })
 		price = results[(len(results)-1)*oracle.percentile/100]
+	}
+	if head.GasUsed < head.GasLimit/oracle.backend.ChainConfig().ElasticityMultiplier() {
+		if price.Cmp(oracle.priceLimit) > 0 {
+			price = new(big.Int).Set(oracle.priceLimit)
+			log.Debug("SuggestTipCap price ", price.String(), "is bigger than priceLimit ", oracle.priceLimit.String(), "head.Number", head.Number.String(), "head.GasUsed", head.GasUsed, "head.GasLimit", head.GasLimit)
+		}
 	}
 	if price.Cmp(oracle.maxPrice) > 0 {
 		price = new(big.Int).Set(oracle.maxPrice)
