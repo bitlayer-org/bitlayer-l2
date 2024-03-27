@@ -187,6 +187,7 @@ func TestSuggestTipCap(t *testing.T) {
 		Blocks:     3,
 		Percentile: 60,
 		Default:    big.NewInt(params.GWei),
+		PriceLimit: 30000000000,
 	}
 	var cases = []struct {
 		fork   *big.Int // London fork number
