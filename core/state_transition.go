@@ -440,7 +440,11 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// the coinbase when simulating calls.
 	} else {
 		fee := new(big.Int).SetUint64(st.gasUsed())
-		fee.Mul(fee, effectiveTip)
+		if rules.IsBlackHole {
+			fee.Mul(fee, msg.GasPrice)
+		} else {
+			fee.Mul(fee, effectiveTip)
+		}
 		// st.state.AddBalance(st.evm.Context.Coinbase, fee)
 		if st.evm.ChainConfig().Merlion != nil {
 			st.state.AddBalance(consensus.FeeRecoder, fee)
