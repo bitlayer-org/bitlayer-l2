@@ -180,7 +180,7 @@ var (
 		ArrowGlacierBlock:   big.NewInt(0),
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(0),
-		PizzaTime:           newUint64(1712052000), // UTC+8 2024.04.02 18:00:00
+		PizzaTime:           newUint64(1711965600), // UTC+8 2024.04.01 18:00:00
 		Merlion: &MerlionConfig{
 			Period: 3,
 			Epoch:  200,
