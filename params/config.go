@@ -180,7 +180,7 @@ var (
 		ArrowGlacierBlock:   big.NewInt(0),
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(0),
-		BlackHoleBlock:      big.NewInt(1526720), //TODO replace
+		BlackHoleBlock:      big.NewInt(1639174), // UTC 2024.04.02 10:00:00
 		Merlion: &MerlionConfig{
 			Period: 3,
 			Epoch:  200,
