@@ -580,7 +580,7 @@ func (c *ChainConfig) Description() string {
 		banner += fmt.Sprintf(" - Verkle:                      @%-10v\n", *c.VerkleTime)
 	}
 	if c.BlackHoleBlock != nil {
-		banner += fmt.Sprintf(" - BlackHole:                      @%-8v\n", *c.BlackHoleBlock)
+		banner += fmt.Sprintf(" - BlackHole:                   #%-8v(block based)\n", c.BlackHoleBlock)
 	}
 	return banner
 }
