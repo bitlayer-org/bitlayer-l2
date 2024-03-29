@@ -155,7 +155,7 @@ var (
 		ArrowGlacierBlock:   big.NewInt(0),
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(0),
-		BlackHoleBlock:      big.NewInt(0),
+		BlackholeTime:       newUint64(0),
 		Merlion: &MerlionConfig{
 			Period: 3,
 			Epoch:  200,
@@ -180,7 +180,7 @@ var (
 		ArrowGlacierBlock:   big.NewInt(0),
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(0),
-		BlackHoleBlock:      big.NewInt(1639174), // UTC 2024.04.02 10:00:00
+		BlackholeTime:       newUint64(1712052000), // UTC+8 2024.04.02 18:00:00
 		Merlion: &MerlionConfig{
 			Period: 3,
 			Epoch:  200,
@@ -285,7 +285,7 @@ var (
 		ArrowGlacierBlock:   big.NewInt(0),
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(0),
-		BlackHoleBlock:      big.NewInt(0),
+		BlackholeTime:       newUint64(0),
 		Merlion: &MerlionConfig{
 			Period: 3,
 			Epoch:  200,
@@ -392,14 +392,14 @@ type ChainConfig struct {
 	ArrowGlacierBlock   *big.Int `json:"arrowGlacierBlock,omitempty"`   // Eip-4345 (bomb delay) switch block (nil = no fork, 0 = already activated)
 	GrayGlacierBlock    *big.Int `json:"grayGlacierBlock,omitempty"`    // Eip-5133 (bomb delay) switch block (nil = no fork, 0 = already activated)
 	MergeNetsplitBlock  *big.Int `json:"mergeNetsplitBlock,omitempty"`  // Virtual fork after The Merge to use as a network splitter
-	BlackHoleBlock      *big.Int `json:"blackHoleBlock,omitempty"`      // basefee no destroy
 
 	// Fork scheduling was switched from blocks to timestamps here
 
-	ShanghaiTime *uint64 `json:"shanghaiTime,omitempty"` // Shanghai switch time (nil = no fork, 0 = already on shanghai)
-	CancunTime   *uint64 `json:"cancunTime,omitempty"`   // Cancun switch time (nil = no fork, 0 = already on cancun)
-	PragueTime   *uint64 `json:"pragueTime,omitempty"`   // Prague switch time (nil = no fork, 0 = already on prague)
-	VerkleTime   *uint64 `json:"verkleTime,omitempty"`   // Verkle switch time (nil = no fork, 0 = already on verkle)
+	ShanghaiTime  *uint64 `json:"shanghaiTime,omitempty"`  // Shanghai switch time (nil = no fork, 0 = already on shanghai)
+	CancunTime    *uint64 `json:"cancunTime,omitempty"`    // Cancun switch time (nil = no fork, 0 = already on cancun)
+	PragueTime    *uint64 `json:"pragueTime,omitempty"`    // Prague switch time (nil = no fork, 0 = already on prague)
+	VerkleTime    *uint64 `json:"verkleTime,omitempty"`    // Verkle switch time (nil = no fork, 0 = already on verkle)
+	BlackholeTime *uint64 `json:"blackholeTime,omitempty"` // basefee no destroy
 
 	// TerminalTotalDifficulty is the amount of total difficulty reached by
 	// the network that triggers the consensus upgrade.
@@ -459,7 +459,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, London: %v, Arrow Glacier: %v, BlackHole: %v, Engine: %v}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, London: %v, Arrow Glacier: %v, Blackhole: %v, Engine: %v}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.DAOForkBlock,
@@ -475,7 +475,7 @@ func (c *ChainConfig) String() string {
 		c.BerlinBlock,
 		c.LondonBlock,
 		c.ArrowGlacierBlock,
-		c.BlackHoleBlock,
+		c.BlackholeTime,
 		engine,
 	)
 }
@@ -579,8 +579,8 @@ func (c *ChainConfig) Description() string {
 	if c.VerkleTime != nil {
 		banner += fmt.Sprintf(" - Verkle:                      @%-10v\n", *c.VerkleTime)
 	}
-	if c.BlackHoleBlock != nil {
-		banner += fmt.Sprintf(" - BlackHole:                   #%-8v(block based)\n", c.BlackHoleBlock)
+	if c.BlackholeTime != nil {
+		banner += fmt.Sprintf(" - Blackhole:                   @%-8v\n", *c.BlackholeTime)
 	}
 	return banner
 }
@@ -647,10 +647,6 @@ func (c *ChainConfig) IsLondon(num *big.Int) bool {
 	return isBlockForked(c.LondonBlock, num)
 }
 
-func (c *ChainConfig) IsBlackHole(num *big.Int) bool {
-	return isBlockForked(c.BlackHoleBlock, num)
-}
-
 // IsArrowGlacier returns whether num is either equal to the Arrow Glacier (EIP-4345) fork block or greater.
 func (c *ChainConfig) IsArrowGlacier(num *big.Int) bool {
 	return isBlockForked(c.ArrowGlacierBlock, num)
@@ -687,6 +683,10 @@ func (c *ChainConfig) IsPrague(num *big.Int, time uint64) bool {
 // IsVerkle returns whether num is either equal to the Verkle fork time or greater.
 func (c *ChainConfig) IsVerkle(num *big.Int, time uint64) bool {
 	return c.IsLondon(num) && isTimestampForked(c.VerkleTime, time)
+}
+
+func (c *ChainConfig) IsBlackhole(num *big.Int, time uint64) bool {
+	return c.IsLondon(num) && isTimestampForked(c.BlackholeTime, time)
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
@@ -742,9 +742,9 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 		{name: "mergeNetsplitBlock", block: c.MergeNetsplitBlock, optional: true},
 		{name: "shanghaiTime", timestamp: c.ShanghaiTime},
 		{name: "cancunTime", timestamp: c.CancunTime, optional: true},
+		{name: "blackholeTime", timestamp: c.BlackholeTime, optional: true},
 		{name: "pragueTime", timestamp: c.PragueTime, optional: true},
 		{name: "verkleTime", timestamp: c.VerkleTime, optional: true},
-		{name: "blackHoleBlock", block: c.BlackHoleBlock},
 	} {
 		if lastFork.name != "" {
 			switch {
@@ -851,8 +851,8 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headNumber *big.Int, 
 	if isForkTimestampIncompatible(c.VerkleTime, newcfg.VerkleTime, headTimestamp) {
 		return newTimestampCompatError("Verkle fork timestamp", c.VerkleTime, newcfg.VerkleTime)
 	}
-	if isForkBlockIncompatible(c.BlackHoleBlock, newcfg.BlackHoleBlock, headNumber) {
-		return newBlockCompatError("BlackHoleBlock fork block", c.BlackHoleBlock, newcfg.BlackHoleBlock)
+	if isForkTimestampIncompatible(c.BlackholeTime, newcfg.BlackholeTime, headTimestamp) {
+		return newTimestampCompatError("BlackholeBlock fork timestamp", c.BlackholeTime, newcfg.BlackholeTime)
 	}
 	return nil
 }
@@ -1000,7 +1000,7 @@ type Rules struct {
 	IsBerlin, IsLondon                                      bool
 	IsMerge, IsShanghai, IsCancun, IsPrague                 bool
 	IsVerkle                                                bool
-	IsBlackHole                                             bool
+	IsBlackhole                                             bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -1026,6 +1026,6 @@ func (c *ChainConfig) Rules(num *big.Int, isMerge bool, timestamp uint64) Rules 
 		IsCancun:         c.IsCancun(num, timestamp),
 		IsPrague:         c.IsPrague(num, timestamp),
 		IsVerkle:         c.IsVerkle(num, timestamp),
-		IsBlackHole:      c.IsBlackHole(num),
+		IsBlackhole:      c.IsBlackhole(num, timestamp),
 	}
 }

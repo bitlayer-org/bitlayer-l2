@@ -441,12 +441,12 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// the coinbase when simulating calls.
 	} else {
 		fee := new(big.Int).SetUint64(st.gasUsed())
-		if rules.IsBlackHole {
+		if rules.IsBlackhole {
 			fee.Mul(fee, msg.GasPrice)
-			log.Debug("BlackHole fork fee msg.GasPrice ", msg.GasPrice.String())
+			log.Debug("Blackhole fork fee msg.GasPrice ", msg.GasPrice.String())
 		} else {
 			fee.Mul(fee, effectiveTip)
-			log.Debug("BlackHole NOT fork fee effectiveTip ", effectiveTip.String())
+			log.Debug("Blackhole NOT fork fee effectiveTip ", effectiveTip.String())
 		}
 		// st.state.AddBalance(st.evm.Context.Coinbase, fee)
 		if st.evm.ChainConfig().Merlion != nil {
