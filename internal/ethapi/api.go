@@ -73,7 +73,12 @@ func (s *EthereumAPI) GasPrice(ctx context.Context) (*hexutil.Big, error) {
 		return nil, err
 	}
 	if head := s.b.CurrentHeader(); head.BaseFee != nil {
-		tipcap.Add(tipcap, head.BaseFee)
+		baseFee := eip1559.CalcBaseFee(s.b.ChainConfig(), head)
+		if baseFee.Cmp(head.BaseFee) > 0 {
+			tipcap.Add(tipcap, baseFee)
+		} else {
+			tipcap.Add(tipcap, head.BaseFee)
+		}
 	}
 	return (*hexutil.Big)(tipcap), err
 }

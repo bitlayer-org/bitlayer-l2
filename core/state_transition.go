@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -440,7 +441,13 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// the coinbase when simulating calls.
 	} else {
 		fee := new(big.Int).SetUint64(st.gasUsed())
-		fee.Mul(fee, effectiveTip)
+		if rules.IsPizza {
+			fee.Mul(fee, msg.GasPrice)
+			log.Debug("Pizza fork fee msg.GasPrice ", msg.GasPrice.String())
+		} else {
+			fee.Mul(fee, effectiveTip)
+			log.Debug("Pizza NOT fork fee effectiveTip ", effectiveTip.String())
+		}
 		// st.state.AddBalance(st.evm.Context.Coinbase, fee)
 		if st.evm.ChainConfig().Merlion != nil {
 			st.state.AddBalance(consensus.FeeRecoder, fee)

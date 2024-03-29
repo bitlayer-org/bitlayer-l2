@@ -30,7 +30,7 @@ var (
 	SepoliaGenesisHash = common.HexToHash("0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9")
 	GoerliGenesisHash  = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
 
-	BitlayerL2MainnetGenesisHash = common.HexToHash("0x41b008c6b9094424b1cda32f95771258e78752390434df8e4456a2688ea16d7c")
+	BitlayerL2MainnetGenesisHash = common.HexToHash("0x3725fc0dfbf427dd33cf563f67992d115733346222c037f00b4fc2989aa42a24")
 	BitlayerL2TestnetGenesisHash = common.HexToHash("0x4419058a4a569535bba3e76b73696b6438f4c5a9bf2689ae7c06f9ab9b0849b0")
 )
 
@@ -155,6 +155,7 @@ var (
 		ArrowGlacierBlock:   big.NewInt(0),
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(0),
+		PizzaTime:           newUint64(0),
 		Merlion: &MerlionConfig{
 			Period: 3,
 			Epoch:  200,
@@ -179,6 +180,7 @@ var (
 		ArrowGlacierBlock:   big.NewInt(0),
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(0),
+		PizzaTime:           newUint64(1711965600), // 2024.04.01 10:00:00 UTC
 		Merlion: &MerlionConfig{
 			Period: 3,
 			Epoch:  200,
@@ -283,6 +285,7 @@ var (
 		ArrowGlacierBlock:   big.NewInt(0),
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(0),
+		PizzaTime:           newUint64(0),
 		Merlion: &MerlionConfig{
 			Period: 3,
 			Epoch:  200,
@@ -396,6 +399,7 @@ type ChainConfig struct {
 	CancunTime   *uint64 `json:"cancunTime,omitempty"`   // Cancun switch time (nil = no fork, 0 = already on cancun)
 	PragueTime   *uint64 `json:"pragueTime,omitempty"`   // Prague switch time (nil = no fork, 0 = already on prague)
 	VerkleTime   *uint64 `json:"verkleTime,omitempty"`   // Verkle switch time (nil = no fork, 0 = already on verkle)
+	PizzaTime    *uint64 `json:"pizzaTime,omitempty"`    // basefee no destroy
 
 	// TerminalTotalDifficulty is the amount of total difficulty reached by
 	// the network that triggers the consensus upgrade.
@@ -455,7 +459,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, London: %v, Arrow Glacier: %v, Engine: %v}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, London: %v, Arrow Glacier: %v, Pizza: %v, Engine: %v}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.DAOForkBlock,
@@ -471,6 +475,7 @@ func (c *ChainConfig) String() string {
 		c.BerlinBlock,
 		c.LondonBlock,
 		c.ArrowGlacierBlock,
+		c.PizzaTime,
 		engine,
 	)
 }
@@ -573,6 +578,9 @@ func (c *ChainConfig) Description() string {
 	}
 	if c.VerkleTime != nil {
 		banner += fmt.Sprintf(" - Verkle:                      @%-10v\n", *c.VerkleTime)
+	}
+	if c.PizzaTime != nil {
+		banner += fmt.Sprintf(" - Pizza:                   @%-8v\n", *c.PizzaTime)
 	}
 	return banner
 }
@@ -677,6 +685,10 @@ func (c *ChainConfig) IsVerkle(num *big.Int, time uint64) bool {
 	return c.IsLondon(num) && isTimestampForked(c.VerkleTime, time)
 }
 
+func (c *ChainConfig) IsPizza(num *big.Int, time uint64) bool {
+	return c.IsLondon(num) && isTimestampForked(c.PizzaTime, time)
+}
+
 // CheckCompatible checks whether scheduled fork transitions have been imported
 // with a mismatching chain configuration.
 func (c *ChainConfig) CheckCompatible(newcfg *ChainConfig, height uint64, time uint64) *ConfigCompatError {
@@ -730,6 +742,7 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 		{name: "mergeNetsplitBlock", block: c.MergeNetsplitBlock, optional: true},
 		{name: "shanghaiTime", timestamp: c.ShanghaiTime},
 		{name: "cancunTime", timestamp: c.CancunTime, optional: true},
+		{name: "pizzaTime", timestamp: c.PizzaTime, optional: true},
 		{name: "pragueTime", timestamp: c.PragueTime, optional: true},
 		{name: "verkleTime", timestamp: c.VerkleTime, optional: true},
 	} {
@@ -837,6 +850,9 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headNumber *big.Int, 
 	}
 	if isForkTimestampIncompatible(c.VerkleTime, newcfg.VerkleTime, headTimestamp) {
 		return newTimestampCompatError("Verkle fork timestamp", c.VerkleTime, newcfg.VerkleTime)
+	}
+	if isForkTimestampIncompatible(c.PizzaTime, newcfg.PizzaTime, headTimestamp) {
+		return newTimestampCompatError("PizzaBlock fork timestamp", c.PizzaTime, newcfg.PizzaTime)
 	}
 	return nil
 }
@@ -984,6 +1000,7 @@ type Rules struct {
 	IsBerlin, IsLondon                                      bool
 	IsMerge, IsShanghai, IsCancun, IsPrague                 bool
 	IsVerkle                                                bool
+	IsPizza                                                 bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -1009,5 +1026,6 @@ func (c *ChainConfig) Rules(num *big.Int, isMerge bool, timestamp uint64) Rules 
 		IsCancun:         c.IsCancun(num, timestamp),
 		IsPrague:         c.IsPrague(num, timestamp),
 		IsVerkle:         c.IsVerkle(num, timestamp),
+		IsPizza:          c.IsPizza(num, timestamp),
 	}
 }
