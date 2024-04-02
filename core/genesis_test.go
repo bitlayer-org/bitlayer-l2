@@ -185,6 +185,8 @@ func TestGenesisHashes(t *testing.T) {
 		// {DefaultGenesisBlock(), params.MainnetGenesisHash},
 		{DefaultGoerliGenesisBlock(), params.GoerliGenesisHash},
 		{DefaultSepoliaGenesisBlock(), params.SepoliaGenesisHash},
+		{DefaultBitlayerL2GenesisBlock(), params.BitlayerL2MainnetGenesisHash},
+		{DefaultBitlayerL2TestnetGenesisBlock(), params.BitlayerL2TestnetGenesisHash},
 	} {
 		// Test via MustCommit
 		db := rawdb.NewMemoryDatabase()
