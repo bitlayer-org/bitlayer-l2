@@ -38,7 +38,7 @@
       "balance": "0xffffffffffffffffffbae1600000",
       "init": {
         "admin": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
-        "brcAddress": "0x000000000000000000000000000000000000F001",
+        "btrAddress": "0x000000000000000000000000000000000000F001",
         "epoch": "100",
         "foundationPool": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718"
       },
