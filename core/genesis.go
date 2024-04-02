@@ -656,7 +656,6 @@ func (g *Genesis) Commit(db ethdb.Database, triedb *trie.Database) (*types.Block
 		}
 	}
 	block := g.ToBlock()
-	log.Info("genesis block hash >>>> ", block.Hash().String())
 	if block.Number().Sign() != 0 {
 		return nil, errors.New("can't commit genesis block with number > 0")
 	}
