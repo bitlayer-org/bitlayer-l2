@@ -780,7 +780,7 @@ func DeveloperGenesisBlock(gasLimit uint64, faucet *common.Address) *Genesis {
 func DefaultBitlayerL2GenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.BitlayerL2MainnetChainConfig,
-		Timestamp:  0x660F3F00,
+		Timestamp:  0x660BBE64,
 		ExtraData:  hexutil.MustDecode("0x4269746c61796572206d61696e6e6574000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:   0x2625a00,
 		BaseFee:    big.NewInt(10000000),
