@@ -525,7 +525,7 @@ const (
 		},
 		{
 		  "inputs": [],
-		  "name": "brcToken",
+		  "name": "btrToken",
 		  "outputs": [
 			{
 			  "internalType": "contract IERC20",
@@ -755,7 +755,7 @@ const (
 			},
 			{
 			  "internalType": "address",
-			  "name": "_brcAddress",
+			  "name": "_btrAddress",
 			  "type": "address"
 			},
 			{

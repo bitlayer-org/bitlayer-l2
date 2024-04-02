@@ -76,15 +76,14 @@ func testSetupGenesis(t *testing.T, scheme string) {
 			wantErr:    errGenesisNoConfig,
 			wantConfig: params.AllEthashProtocolChanges,
 		},
-		// TODO BitlayerL2MainnetGenesisHash not ready yet
-		// {
-		// 	name: "no block in DB, genesis == nil",
-		// 	fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-		// 		return SetupGenesisBlock(db, trie.NewDatabase(db, newDbConfig(scheme)), nil)
-		// 	},
-		// 	wantHash:   params.BitlayerL2MainnetGenesisHash,
-		// 	wantConfig: params.BitlayerL2MainnetChainConfig,
-		// },
+		{
+			name: "no block in DB, genesis == nil",
+			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
+				return SetupGenesisBlock(db, trie.NewDatabase(db, newDbConfig(scheme)), nil)
+			},
+			wantHash:   params.BitlayerL2MainnetGenesisHash,
+			wantConfig: params.BitlayerL2MainnetChainConfig,
+		},
 		{
 			name: "mainnet block in DB, genesis == nil",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
@@ -186,6 +185,8 @@ func TestGenesisHashes(t *testing.T) {
 		// {DefaultGenesisBlock(), params.MainnetGenesisHash},
 		{DefaultGoerliGenesisBlock(), params.GoerliGenesisHash},
 		{DefaultSepoliaGenesisBlock(), params.SepoliaGenesisHash},
+		{DefaultBitlayerL2GenesisBlock(), params.BitlayerL2MainnetGenesisHash},
+		{DefaultBitlayerL2TestnetGenesisBlock(), params.BitlayerL2TestnetGenesisHash},
 	} {
 		// Test via MustCommit
 		db := rawdb.NewMemoryDatabase()
