@@ -708,14 +708,14 @@ func (c *Merlion) updateValidators(vmCtx *systemcontract.CallContext, chain cons
 // tryDistributeBlockFee distributes block fee to validators
 func (c *Merlion) tryDistributeBlockFee(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB) error {
 	fee := state.GetBalance(consensus.FeeRecoder)
-	if fee.Cmp(common.Big0) <= 0 {
+	if fee.Cmp(common.U2560) <= 0 {
 		return nil
 	}
 
 	// Miner will send tx to deposit block fees to contract, add to his balance first.
 	state.AddBalance(systemcontract.EngineCaller, fee)
 	// reset fee
-	state.SetBalance(consensus.FeeRecoder, common.Big0)
+	state.SetBalance(consensus.FeeRecoder, common.U2560)
 
 	return systemcontract.DistributeBlockFee(&systemcontract.CallContext{
 		Statedb:      state,

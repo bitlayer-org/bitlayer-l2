@@ -23,7 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
 )
 
 const (
@@ -295,7 +295,7 @@ func runMerlionTest(t *testing.T, testID int, tc *testcase) {
 	genesis := core.BasicMerlionGenesisBlock(&config, signers, accounts.adminAddr)
 	// Create a pristine blockchain with the genesis injected
 	db := rawdb.NewMemoryDatabase()
-	triedb := trie.NewDatabase(db, trie.HashDefaults)
+	triedb := triedb.NewDatabase(db, triedb.HashDefaults)
 	genesisBlock, _ := genesis.Commit(db, triedb)
 	fmt.Printf("genesis header hash %s, root %s\n", genesisBlock.Hash().String(), genesisBlock.Root().String())
 

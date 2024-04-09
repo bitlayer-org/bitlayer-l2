@@ -17,7 +17,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,7 +89,7 @@ func TestDistributeBlockFee(t *testing.T) {
 
 	feeStaking := ctx.Statedb.GetBalance(system.StakingContract)
 
-	fee := big.NewInt(1000000000000000000)
+	fee := uint256.NewInt(1000000000000000000)
 	ctx.Statedb.AddBalance(EngineCaller, fee)
 	assert.NoError(t, DistributeBlockFee(ctx, fee))
 
@@ -128,7 +129,7 @@ func initCallContext() (*CallContext, error) {
 
 	db := rawdb.NewMemoryDatabase()
 	// genesisBlock := genesis.ToBlock()
-	triedb := trie.NewDatabase(db, trie.HashDefaults)
+	triedb := triedb.NewDatabase(db, triedb.HashDefaults)
 	genesisBlock, _ := genesis.Commit(db, triedb)
 
 	fmt.Printf("genesis header hash %s, root %s\n", genesisBlock.Hash().String(), genesisBlock.Root().String())

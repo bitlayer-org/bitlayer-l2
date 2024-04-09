@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/contracts/system"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/holiman/uint256"
 )
 
 const TopValidatorNum uint8 = 21
@@ -67,7 +68,7 @@ func DecreaseMissedBlocksCounter(ctx *CallContext) error {
 }
 
 // DistributeBlockFee return the result of calling method `distributeBlockFee` in Staking contract
-func DistributeBlockFee(ctx *CallContext, fee *big.Int) error {
+func DistributeBlockFee(ctx *CallContext, fee *uint256.Int) error {
 	const method = "distributeBlockFee"
 	data, err := system.ABIPack(system.StakingContract, method)
 	if err != nil {

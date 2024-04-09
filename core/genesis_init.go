@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/holiman/uint256"
 )
 
 const (
@@ -79,7 +80,8 @@ func (env *genesisInit) callContract(contract common.Address, method string, arg
 	// Create EVM
 	evm := vm.NewEVM(NewEVMBlockContext(env.header, nil, &env.header.Coinbase), NewEVMTxContext(msg), env.state, env.genesis.Config, vm.Config{})
 	// Run evm call
-	ret, _, err := evm.Call(vm.AccountRef(msg.From), *msg.To, msg.Data, msg.GasLimit, msg.Value)
+	uint256Value, _ := uint256.FromBig(msg.Value)
+	ret, _, err := evm.Call(vm.AccountRef(msg.From), *msg.To, msg.Data, msg.GasLimit, uint256Value)
 
 	if err == vm.ErrExecutionReverted {
 		reason, errUnpack := abi.UnpackRevert(common.CopyBytes(ret))

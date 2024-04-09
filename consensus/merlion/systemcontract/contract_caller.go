@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/holiman/uint256"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -28,11 +29,11 @@ var (
 
 // CallContract executes transaction sent to system contracts.
 func CallContract(ctx *CallContext, to *common.Address, data []byte) (ret []byte, err error) {
-	return CallContractWithValue(ctx /*ctx.Header.Coinbase*/, EngineCaller, to, data, big.NewInt(0))
+	return CallContractWithValue(ctx /*ctx.Header.Coinbase*/, EngineCaller, to, data, common.U2560)
 }
 
 // CallContract executes transaction sent to system contracts.
-func CallContractWithValue(ctx *CallContext, from common.Address, to *common.Address, data []byte, value *big.Int) (ret []byte, err error) {
+func CallContractWithValue(ctx *CallContext, from common.Address, to *common.Address, data []byte, value *uint256.Int) (ret []byte, err error) {
 	evm := vm.NewEVM(core.NewEVMBlockContext(ctx.Header, ctx.ChainContext, nil), vm.TxContext{
 		Origin:   from,
 		GasPrice: big.NewInt(0),
