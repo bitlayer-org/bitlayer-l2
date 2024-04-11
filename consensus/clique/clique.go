@@ -311,14 +311,14 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	// 	return errors.New("clique does not support cancun fork")
 	// }
 	// Verify the non-existence of cancun-specific header fields
-	switch {
-	case header.ExcessBlobGas != nil:
-		return fmt.Errorf("invalid excessBlobGas: have %d, expected nil", header.ExcessBlobGas)
-	case header.BlobGasUsed != nil:
-		return fmt.Errorf("invalid blobGasUsed: have %d, expected nil", header.BlobGasUsed)
-	case header.ParentBeaconRoot != nil:
-		return fmt.Errorf("invalid parentBeaconRoot, have %#x, expected nil", header.ParentBeaconRoot)
-	}
+	// switch {
+	// case header.ExcessBlobGas != nil:
+	// 	return fmt.Errorf("invalid excessBlobGas: have %d, expected nil", header.ExcessBlobGas)
+	// case header.BlobGasUsed != nil:
+	// 	return fmt.Errorf("invalid blobGasUsed: have %d, expected nil", header.BlobGasUsed)
+	// case header.ParentBeaconRoot != nil:
+	// 	return fmt.Errorf("invalid parentBeaconRoot, have %#x, expected nil", header.ParentBeaconRoot)
+	// }
 
 	// All basic checks passed, verify cascading fields
 	return c.verifyCascadingFields(chain, header, parents)
