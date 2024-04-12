@@ -607,11 +607,6 @@ func (c *Merlion) Prepare(chain consensus.ChainHeaderReader, header *types.Heade
 	}
 	header.Extra = header.Extra[:extraVanity]
 
-	if c.chainConfig.IsCancun(header.Number, header.Time) {
-		log.Info("merlion is cancun, header.WithdrawalsHash = empty")
-		header.WithdrawalsHash = &types.EmptyWithdrawalsHash
-	}
-
 	if number%c.config.Epoch == 0 {
 		newSortedValidators, err := c.getTopValidators(chain, header)
 		if err != nil {
@@ -636,6 +631,12 @@ func (c *Merlion) Prepare(chain consensus.ChainHeaderReader, header *types.Heade
 	if header.Time < uint64(time.Now().Unix()) {
 		header.Time = uint64(time.Now().Unix())
 	}
+
+	if c.chainConfig.IsCancun(header.Number, header.Time) {
+		log.Info("merlion is cancun, header.WithdrawalsHash = empty")
+		header.WithdrawalsHash = &types.EmptyWithdrawalsHash
+	}
+
 	return nil
 }
 
