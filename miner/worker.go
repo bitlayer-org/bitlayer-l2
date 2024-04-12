@@ -976,6 +976,13 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 	if genParams.random != (common.Hash{}) {
 		header.MixDigest = genParams.random
 	}
+
+	// Run the consensus preparation with the default or customized consensus engine.
+	if err := w.engine.Prepare(w.chain, header); err != nil {
+		log.Error("Failed to prepare header for sealing", "err", err)
+		return nil, err
+	}
+
 	// Set baseFee and GasLimit if we are on an EIP-1559 chain
 	if w.chainConfig.IsLondon(header.Number) {
 		header.BaseFee = eip1559.CalcBaseFee(w.chainConfig, parent)
@@ -997,11 +1004,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		header.ExcessBlobGas = &excessBlobGas
 		header.ParentBeaconRoot = genParams.beaconRoot
 	}
-	// Run the consensus preparation with the default or customized consensus engine.
-	if err := w.engine.Prepare(w.chain, header); err != nil {
-		log.Error("Failed to prepare header for sealing", "err", err)
-		return nil, err
-	}
+
 	// Could potentially happen if starting to mine in an odd state.
 	// Note genParams.coinbase can be different with header.Coinbase
 	// since clique algorithm can modify the coinbase field in header.
