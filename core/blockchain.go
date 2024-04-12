@@ -1359,6 +1359,7 @@ func (bc *BlockChain) writeKnownBlock(block *types.Block) error {
 // writeBlockWithState writes block, metadata and corresponding state data to the
 // database.
 func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, internalTxs []*types.InternalTx, state *state.StateDB) error {
+	log.Info("write blockwith state")
 	// Calculate the total difficulty of the block
 	ptd := bc.GetTd(block.ParentHash(), block.NumberU64()-1)
 	if ptd == nil {
@@ -1376,19 +1377,26 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	defer waitBlockBatchWrite.Wait()
 	go func() {
 		blockBatch := bc.db.NewBatch()
+		log.Info("write td")
 		rawdb.WriteTd(blockBatch, block.Hash(), block.NumberU64(), externTd)
+		log.Info("write block")
 		rawdb.WriteBlock(blockBatch, block)
+		log.Info("write receipts")
 		rawdb.WriteReceipts(blockBatch, block.Hash(), block.NumberU64(), receipts)
 		if len(internalTxs) > 0 {
+			log.Info("write internal tx")
 			rawdb.WriteInternalTxs(blockBatch, block.Hash(), block.NumberU64(), internalTxs)
 		}
+		log.Info("write preimages")
 		rawdb.WritePreimages(blockBatch, state.Preimages())
 		if err := blockBatch.Write(); err != nil {
 			log.Crit("Failed to write block into disk", "err", err)
 		}
+		log.Info("write preimages")
 		bc.writeFinalizedBlock(block)
 		waitBlockBatchWrite.Done()
 	}()
+	log.Info("write state commit")
 	// Commit all cached state changes into underlying memory database.
 	root, err := state.Commit(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
@@ -1401,6 +1409,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	}
 	// If we're running an archive node, always flush
 	if bc.cacheConfig.TrieDirtyDisabled {
+		log.Info("write dirty commit")
 		return bc.triedb.Commit(root, false)
 	}
 	// Full but not archive node, do proper garbage collection
@@ -1420,6 +1429,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	if nodes > limit || imgs > 4*1024*1024 {
 		bc.triedb.Cap(limit - ethdb.IdealBatchSize)
 	}
+	log.Info("write flush")
 	// Find the next state trie we need to commit
 	chosen := current - TriesInMemory
 	flushInterval := time.Duration(bc.flushInterval.Load())
@@ -1442,6 +1452,8 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 			bc.gcproc = 0
 		}
 	}
+	log.Info("write deference")
+
 	// Garbage collect anything below our required write retention
 	for !bc.triegc.Empty() {
 		root, number := bc.triegc.Pop()
@@ -1451,6 +1463,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		}
 		bc.triedb.Dereference(root)
 	}
+	log.Info("write done")
 
 	return nil
 }

@@ -676,6 +676,13 @@ func (c *Merlion) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header 
 
 	block := types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil))
 	if c.chainConfig.IsCancun(header.Number, header.Time) {
+		if header.WithdrawalsHash == nil {
+			log.Info("merlion NO withdrawhash")
+		} else {
+			if header.WithdrawalsHash.String() != types.EmptyWithdrawalsHash.String() {
+				log.Info("merlion NOT emptywithdrawhash", header.WithdrawalsHash.String())
+			}
+		}
 		block = block.WithWithdrawals(make([]*types.Withdrawal, 0))
 	}
 
@@ -997,15 +1004,15 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	}
 }
 
-func (c *Merlion) GetCheckPointBlockNumber(header *types.Block) uint64 {
+func (c *Merlion) GetCheckPointBlockNumber(header *types.Header) uint64 {
 	if header == nil {
 		return 0
 	}
 
-	if header.NumberU64() < c.config.Epoch {
+	if header.Number.Uint64() < c.config.Epoch {
 		return 0
 	} else {
-		return header.NumberU64() - (header.NumberU64() % c.config.Epoch)
+		return header.Number.Uint64() - (header.Number.Uint64() % c.config.Epoch)
 	}
 }
 
