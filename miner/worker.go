@@ -732,7 +732,6 @@ func (w *worker) makeEnv(parent *types.Header, header *types.Header, coinbase co
 		coinbase: coinbase,
 		header:   header,
 	}
-	log.Info("worker makeEnv", header.Number.String(), header.Time)
 	// Keep track of transactions which return errors so they can be removed
 	env.tcount = 0
 	return env, nil
@@ -969,7 +968,6 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		Time:       timestamp,
 		Coinbase:   genParams.coinbase,
 	}
-	log.Info("prepareWork", header.Number.String(), header.Time)
 	// Set the extra field.
 	if len(w.extra) != 0 {
 		header.Extra = w.extra
@@ -999,7 +997,6 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		header.ExcessBlobGas = &excessBlobGas
 		header.ParentBeaconRoot = genParams.beaconRoot
 	}
-	log.Info("worker prepare...", header.Number.String(), header.Time)
 	// Run the consensus preparation with the default or customized consensus engine.
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for sealing", "err", err)
@@ -1081,7 +1078,6 @@ func (w *worker) fillTransactions(interrupt *atomic.Int32, env *environment) err
 
 // generateWork generates a sealing block based on the given parameters.
 func (w *worker) generateWork(params *generateParams) *newPayloadResult {
-	log.Info("worker generateWork prepareWork")
 	work, err := w.prepareWork(params)
 	if err != nil {
 		return &newPayloadResult{err: err}
@@ -1100,7 +1096,6 @@ func (w *worker) generateWork(params *generateParams) *newPayloadResult {
 			log.Warn("Block building is interrupted", "allowance", common.PrettyDuration(w.newpayloadTimeout))
 		}
 	}
-	log.Info("worker generateWork FinalizeAndAssemble")
 	block, err := w.engine.FinalizeAndAssemble(w.chain, work.header, work.state, work.txs, nil, work.receipts, params.withdrawals)
 	if err != nil {
 		return &newPayloadResult{err: err}
@@ -1130,7 +1125,6 @@ func (w *worker) commitWork(interrupt *atomic.Int32, timestamp int64) {
 			return
 		}
 	}
-	log.Info("commitWork prepareWork")
 	work, err := w.prepareWork(&generateParams{
 		timestamp: uint64(timestamp),
 		coinbase:  coinbase,
@@ -1191,7 +1185,6 @@ func (w *worker) commit(env *environment, interval func(), update bool, start ti
 		// https://github.com/ethereum/go-ethereum/issues/24299
 		env := env.copy()
 		// Withdrawals are set to nil here, because this is only called in PoW.
-		log.Info("worker commit FinalizeAndAssemble")
 		block, err := w.engine.FinalizeAndAssemble(w.chain, env.header, env.state, env.txs, nil, env.receipts, nil)
 		if err != nil {
 			return err

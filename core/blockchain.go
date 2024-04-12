@@ -1340,7 +1340,6 @@ func (bc *BlockChain) writeFinalizedBlock(block *types.Block) {
 	finalizedNumber := merlionEngine.GetFinalizedBlockNumber(block.Header(), checkpointHeader)
 	finalizeHeader := bc.GetHeaderByNumber(finalizedNumber)
 	bc.SetFinalized(finalizeHeader)
-
 }
 
 // writeKnownBlock updates the head block flag with a known block

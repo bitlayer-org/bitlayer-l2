@@ -633,7 +633,6 @@ func (c *Merlion) Prepare(chain consensus.ChainHeaderReader, header *types.Heade
 	}
 
 	if c.chainConfig.IsCancun(header.Number, header.Time) {
-		log.Info("merlion is cancun, header.WithdrawalsHash = empty")
 		header.WithdrawalsHash = &types.EmptyWithdrawalsHash
 	}
 
