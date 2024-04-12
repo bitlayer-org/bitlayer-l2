@@ -503,9 +503,7 @@ func (g *Genesis) ToBlock() *types.Block {
 			// EIP-4788: The parentBeaconBlockRoot of the genesis block is always
 			// the zero hash. This is because the genesis block does not have a parent
 			// by definition.
-			if conf.Merlion == nil {
-				head.ParentBeaconRoot = new(common.Hash)
-			}
+			head.ParentBeaconRoot = new(common.Hash)
 			// EIP-4844 fields
 			head.ExcessBlobGas = g.ExcessBlobGas
 			head.BlobGasUsed = g.BlobGasUsed

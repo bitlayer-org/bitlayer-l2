@@ -676,8 +676,13 @@ func (c *Merlion) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header 
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 
+	block := types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil))
+	if c.chainConfig.IsCancun(header.Number, header.Time) {
+		block = block.WithWithdrawals(make([]*types.Withdrawal, 0))
+	}
+
 	// Assemble and return the final block for sealing
-	return types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil)), nil
+	return block, nil
 }
 
 // prepareFinalize does some preparing jobs before finalize, including:
