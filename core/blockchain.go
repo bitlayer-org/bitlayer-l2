@@ -1325,7 +1325,22 @@ func (bc *BlockChain) writeBlockWithoutState(block *types.Block, td *big.Int) (e
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to write block into disk", "err", err)
 	}
+
 	return nil
+}
+
+func (bc *BlockChain) writeFinalizedBlock(block *types.Block) {
+	if block == nil {
+		return
+	}
+	var finalizeNumber uint64
+	if block.NumberU64() < bc.chainConfig.Merlion.Epoch {
+		finalizeNumber = 0
+	} else {
+		finalizeNumber = block.NumberU64() - (block.NumberU64() % bc.chainConfig.Merlion.Epoch)
+	}
+	header := bc.GetHeaderByNumber(finalizeNumber)
+	bc.SetFinalized(header)
 }
 
 // writeKnownBlock updates the head block flag with a known block

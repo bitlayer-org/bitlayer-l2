@@ -65,8 +65,9 @@ var (
 
 	extraVanity = 32                     // Fixed number of extra-data prefix bytes reserved for validator vanity
 	extraSeal   = crypto.SignatureLength // Fixed number of extra-data suffix bytes reserved for validator seal
-
-	uncleHash = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
+	ExtraVanity = extraVanity
+	ExtraSeal   = extraSeal
+	uncleHash   = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 
 	diffInTurn = big.NewInt(2) // Block difficulty for in-turn signatures
 	diffNoTurn = big.NewInt(1) // Block difficulty for out-of-turn signatures
@@ -678,7 +679,6 @@ func (c *Merlion) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header 
 
 	block := types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil))
 	if c.chainConfig.IsCancun(header.Number, header.Time) {
-		header.WithdrawalsHash = &types.EmptyWithdrawalsHash
 		block = block.WithWithdrawals(make([]*types.Withdrawal, 0))
 	}
 
