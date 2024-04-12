@@ -678,6 +678,10 @@ func (c *Merlion) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header 
 
 	block := types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil))
 	if c.chainConfig.IsCancun(header.Number, header.Time) {
+		if header.WithdrawalsHash.String() != types.EmptyWithdrawalsHash.String() {
+			log.Error("block header withdrawhash expected", header.Number.String())
+			header.WithdrawalsHash = &types.EmptyWithdrawalsHash
+		}
 		block = block.WithWithdrawals(make([]*types.Withdrawal, 0))
 	}
 
