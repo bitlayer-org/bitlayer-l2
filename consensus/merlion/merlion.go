@@ -24,6 +24,7 @@ import (
 	"io"
 	"math/big"
 	"math/rand"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -682,7 +683,8 @@ func (c *Merlion) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header 
 	block := types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil))
 	if c.chainConfig.IsCancun(header.Number, header.Time) {
 		if header.WithdrawalsHash == nil {
-			log.Info("merlion NO withdrawhash")
+			log.Info(string(debug.Stack()))
+			log.Info("merlion NO withdrawhash", header.Number.String(), header.Time, c.chainConfig.CancunTime)
 		} else {
 			if header.WithdrawalsHash.String() != types.EmptyWithdrawalsHash.String() {
 				log.Info("merlion NOT emptywithdrawhash", header.WithdrawalsHash.String())
