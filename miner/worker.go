@@ -995,10 +995,6 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		}
 		header.BlobGasUsed = new(uint64)
 		header.ExcessBlobGas = &excessBlobGas
-		if w.chainConfig.Merlion != nil {
-			log.Info("Merlion engine set EmptyWithdrawalsHash")
-			header.WithdrawalsHash = &types.EmptyWithdrawalsHash
-		}
 		header.ParentBeaconRoot = genParams.beaconRoot
 	}
 	// Run the consensus preparation with the default or customized consensus engine.
