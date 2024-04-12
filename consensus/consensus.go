@@ -135,4 +135,6 @@ type PoW interface {
 // MerlionEngine is a consensus engine based on delegate proof-of-stake.
 type MerlionEngine interface {
 	Engine
+	GetCheckPointBlockNumber(header *types.Header) uint64
+	GetFinalizedBlockNumber(header *types.Header, checkpointHeader *types.Header) uint64
 }

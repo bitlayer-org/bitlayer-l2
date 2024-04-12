@@ -61,12 +61,9 @@ const (
 
 // Merlion proof-of-stake-authority protocol constants.
 var (
-	epochLength = uint64(30000) // Default number of blocks after which to checkpoint and reset the pending votes
-
-	extraVanity = 32                     // Fixed number of extra-data prefix bytes reserved for validator vanity
-	extraSeal   = crypto.SignatureLength // Fixed number of extra-data suffix bytes reserved for validator seal
-	ExtraVanity = extraVanity
-	ExtraSeal   = extraSeal
+	epochLength = uint64(30000)            // Default number of blocks after which to checkpoint and reset the pending votes
+	extraVanity = 32                       // Fixed number of extra-data prefix bytes reserved for validator vanity
+	extraSeal   = crypto.SignatureLength   // Fixed number of extra-data suffix bytes reserved for validator seal
 	uncleHash   = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 
 	diffInTurn = big.NewInt(2) // Block difficulty for in-turn signatures
@@ -998,4 +995,30 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	if err != nil {
 		panic("can't encode: " + err.Error())
 	}
+}
+
+func (c *Merlion) GetCheckPointBlockNumber(header *types.Block) uint64 {
+	if header == nil {
+		return 0
+	}
+
+	if header.NumberU64() < c.config.Epoch {
+		return 0
+	} else {
+		return header.NumberU64() - (header.NumberU64() % c.config.Epoch)
+	}
+}
+
+func (c *Merlion) GetFinalizedBlockNumber(header *types.Header, checkpointHeader *types.Header) uint64 {
+	if header == nil || checkpointHeader == nil {
+		return 0
+	}
+
+	validatorCount := len(checkpointHeader.Extra) - extraSeal - extraVanity
+	if header.Number.Uint64() < uint64(validatorCount) {
+		return 0
+	} else {
+		return header.Number.Uint64() - uint64(validatorCount)
+	}
+
 }
