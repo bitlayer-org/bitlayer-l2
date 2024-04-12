@@ -165,6 +165,11 @@ func (h *Header) EmptyReceipts() bool {
 	return h.ReceiptHash == EmptyReceiptsHash
 }
 
+// EmptyWithdrawalsHash returns true if the WithdrawalsHash is EmptyWithdrawalsHash.
+func (h *Header) EmptyWithdrawalsHash() bool {
+	return h.WithdrawalsHash != nil && *h.WithdrawalsHash == EmptyWithdrawalsHash
+}
+
 // Body is a simple (mutable, non-safe) data container for storing and moving
 // a block's data contents (transactions and uncles) together.
 type Body struct {

@@ -383,8 +383,9 @@ func (c *Merlion) verifyHeader(chain consensus.ChainHeaderReader, header *types.
 			return fmt.Errorf("invalid WithdrawalsHash, have %#x, expected nil", header.WithdrawalsHash)
 		}
 	} else {
-		if header.ParentBeaconRoot != nil {
-			return fmt.Errorf("invalid parentBeaconRoot, have %#x, expected nil", header.ParentBeaconRoot)
+		switch {
+		case !header.EmptyWithdrawalsHash():
+			return errors.New("header has wrong WithdrawalsHash")
 		}
 		if err := eip4844.VerifyEIP4844Header(parent, header); err != nil {
 			return err

@@ -350,6 +350,10 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			panic(err)
 		}
 
+		if block.Header().EmptyWithdrawalsHash() {
+			block = block.WithWithdrawals(make([]*types.Withdrawal, 0))
+		}
+
 		// Write state changes to db
 		root, err := statedb.Commit(b.header.Number.Uint64(), config.IsEIP158(b.header.Number))
 		if err != nil {
@@ -448,7 +452,9 @@ func (cm *chainMaker) makeHeader(parent *types.Block, state *state.StateDB, engi
 		excessBlobGas := eip4844.CalcExcessBlobGas(parentExcessBlobGas, parentBlobGasUsed)
 		header.ExcessBlobGas = &excessBlobGas
 		header.BlobGasUsed = new(uint64)
-		header.ParentBeaconRoot = new(common.Hash)
+		if cm.config.Merlion != nil {
+			header.WithdrawalsHash = &types.EmptyWithdrawalsHash
+		}
 	}
 	return header
 }

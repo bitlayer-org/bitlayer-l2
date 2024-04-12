@@ -605,6 +605,9 @@ func (c *ChainConfig) Description() string {
 	if c.ShanghaiTime != nil {
 		banner += fmt.Sprintf(" - Shanghai:                    @%-10v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/shanghai.md)\n", *c.ShanghaiTime)
 	}
+	if c.PizzaTime != nil {
+		banner += fmt.Sprintf(" - Pizza:                       @%-8v\n", *c.PizzaTime)
+	}
 	if c.CancunTime != nil {
 		banner += fmt.Sprintf(" - Cancun:                      @%-10v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/cancun.md)\n", *c.CancunTime)
 	}
@@ -614,9 +617,7 @@ func (c *ChainConfig) Description() string {
 	if c.VerkleTime != nil {
 		banner += fmt.Sprintf(" - Verkle:                      @%-10v\n", *c.VerkleTime)
 	}
-	if c.PizzaTime != nil {
-		banner += fmt.Sprintf(" - Pizza:                   @%-8v\n", *c.PizzaTime)
-	}
+
 	return banner
 }
 
