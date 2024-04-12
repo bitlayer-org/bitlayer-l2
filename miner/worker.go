@@ -997,7 +997,6 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		header.ExcessBlobGas = &excessBlobGas
 		if w.chainConfig.Merlion != nil {
 			header.WithdrawalsHash = &types.EmptyWithdrawalsHash
-			log.Info("set block header EmptyWithdrawalsHash", header.Number.String())
 		}
 		header.ParentBeaconRoot = genParams.beaconRoot
 	}
