@@ -1035,5 +1035,4 @@ func (c *Merlion) GetFinalizedBlockNumber(header *types.Header, checkpointHeader
 	} else {
 		return header.Number.Uint64() - uint64(validatorCount)
 	}
-
 }
