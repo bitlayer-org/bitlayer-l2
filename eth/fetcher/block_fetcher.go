@@ -603,6 +603,9 @@ func (f *BlockFetcher) loop() {
 							log.Trace("Block empty, skipping body retrieval", "peer", announce.origin, "number", header.Number, "hash", header.Hash())
 
 							block := types.NewBlockWithHeader(header)
+							if block.Header().EmptyWithdrawalsHash() {
+								block = block.WithWithdrawals(make([]*types.Withdrawal, 0))
+							}
 							block.ReceivedAt = task.time
 
 							complete = append(complete, block)
@@ -687,6 +690,9 @@ func (f *BlockFetcher) loop() {
 						matched = true
 						if f.getBlock(hash) == nil {
 							block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.uncles[i])
+							if block.Header().EmptyWithdrawalsHash() {
+								block = block.WithWithdrawals(make([]*types.Withdrawal, 0))
+							}
 							block.ReceivedAt = task.time
 							blocks = append(blocks, block)
 						} else {
