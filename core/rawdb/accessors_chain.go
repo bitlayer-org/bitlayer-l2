@@ -787,6 +787,56 @@ func WriteAncientBlocks(db ethdb.AncientWriter, blocks []*types.Block, receipts 
 	})
 }
 
+// ReadBlobSidecarsRLP retrieves all the transaction blobs belonging to a block in RLP encoding.
+func ReadBlobSidecarsRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
+	var data []byte
+	db.ReadAncients(func(reader ethdb.AncientReaderOp) error {
+		// // Check if the data is in ancients
+		// if isCanon(reader, number, hash) {
+		// 	data, _ = reader.Ancient(ChainFreezerBlobSidecarTable, number)
+		// 	return nil
+		// }
+		// If not, try reading from leveldb
+		data, _ = db.Get(blockBlobSidecarsKey(number, hash))
+		return nil
+	})
+	return data
+}
+
+// ReadBlobSidecars retrieves all the transaction blobs belonging to a block.
+func ReadBlobSidecars(db ethdb.Reader, hash common.Hash, number uint64) types.BlobSidecars {
+	data := ReadBlobSidecarsRLP(db, hash, number)
+	if len(data) == 0 {
+		return nil
+	}
+	var ret types.BlobSidecars
+	if err := rlp.DecodeBytes(data, &ret); err != nil {
+		log.Error("Invalid blob array RLP", "hash", hash, "err", err)
+		return nil
+	}
+	return ret
+}
+
+// WriteBlobSidecars stores all the transaction blobs belonging to a block.
+// It could input nil for empty blobs.
+func WriteBlobSidecars(db ethdb.KeyValueWriter, hash common.Hash, number uint64, blobs types.BlobSidecars) {
+	data, err := rlp.EncodeToBytes(blobs)
+	if err != nil {
+		log.Crit("Failed to encode block blobs", "err", err)
+	}
+	// Store the flattened receipt slice
+	if err := db.Put(blockBlobSidecarsKey(number, hash), data); err != nil {
+		log.Crit("Failed to store block blobs", "err", err)
+	}
+}
+
+// DeleteBlobSidecars removes all blob data associated with a block hash.
+func DeleteBlobSidecars(db ethdb.KeyValueWriter, hash common.Hash, number uint64) {
+	if err := db.Delete(blockBlobSidecarsKey(number, hash)); err != nil {
+		log.Crit("Failed to delete block blobs", "err", err)
+	}
+}
+
 func writeAncientBlock(op ethdb.AncientWriteOp, block *types.Block, header *types.Header, receipts []*types.ReceiptForStorage, td *big.Int) error {
 	num := block.NumberU64()
 	if err := op.AppendRaw(ChainFreezerHashTable, num, block.Hash().Bytes()); err != nil {
@@ -804,6 +854,11 @@ func writeAncientBlock(op ethdb.AncientWriteOp, block *types.Block, header *type
 	if err := op.Append(ChainFreezerDifficultyTable, num, td); err != nil {
 		return fmt.Errorf("can't append block %d total difficulty: %v", num, err)
 	}
+	// if block.Sidecars() != nil {
+	// 	if err := op.Append(ChainFreezerBlobSidecarTable, num, block.Sidecars()); err != nil {
+	// 		return fmt.Errorf("can't append block %d blobs: %v", num, err)
+	// 	}
+	// }
 	return nil
 }
 
@@ -813,6 +868,7 @@ func DeleteBlock(db ethdb.KeyValueWriter, hash common.Hash, number uint64) {
 	DeleteHeader(db, hash, number)
 	DeleteBody(db, hash, number)
 	DeleteTd(db, hash, number)
+	DeleteBlobSidecars(db, hash, number) // it is safe to delete non-exist blob
 }
 
 // DeleteBlockWithoutNumber removes all block data associated with a hash, except
@@ -822,6 +878,7 @@ func DeleteBlockWithoutNumber(db ethdb.KeyValueWriter, hash common.Hash, number 
 	deleteHeaderWithoutNumber(db, hash, number)
 	DeleteBody(db, hash, number)
 	DeleteTd(db, hash, number)
+	DeleteBlobSidecars(db, hash, number)
 }
 
 const badBlockToKeep = 10

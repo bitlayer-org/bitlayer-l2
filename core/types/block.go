@@ -209,6 +209,9 @@ type Block struct {
 	// inter-peer block relay.
 	ReceivedAt   time.Time
 	ReceivedFrom interface{}
+
+	// sidecars provides DA check
+	sidecars BlobSidecars
 }
 
 // "external" block encoding. used for eth protocol, etc.
@@ -450,11 +453,17 @@ func NewBlockWithHeader(header *Header) *Block {
 // WithSeal returns a new block with the data from b but the header replaced with
 // the sealed one.
 func (b *Block) WithSeal(header *Header) *Block {
+	// fill sidecars metadata
+	for _, sidecar := range b.sidecars {
+		sidecar.BlockNumber = header.Number
+		sidecar.BlockHash = header.Hash()
+	}
 	return &Block{
 		header:       CopyHeader(header),
 		transactions: b.transactions,
 		uncles:       b.uncles,
 		withdrawals:  b.withdrawals,
+		sidecars:     b.sidecars,
 	}
 }
 
@@ -465,6 +474,7 @@ func (b *Block) WithBody(transactions []*Transaction, uncles []*Header) *Block {
 		transactions: make([]*Transaction, len(transactions)),
 		uncles:       make([]*Header, len(uncles)),
 		withdrawals:  b.withdrawals,
+		sidecars:     b.sidecars,
 	}
 	copy(block.transactions, transactions)
 	for i := range uncles {
@@ -479,12 +489,36 @@ func (b *Block) WithWithdrawals(withdrawals []*Withdrawal) *Block {
 		header:       b.header,
 		transactions: b.transactions,
 		uncles:       b.uncles,
+		sidecars:     b.sidecars,
 	}
 	if withdrawals != nil {
 		block.withdrawals = make([]*Withdrawal, len(withdrawals))
 		copy(block.withdrawals, withdrawals)
 	}
 	return block
+}
+
+// WithSidecars returns a block containing the given blobs.
+func (b *Block) WithSidecars(sidecars BlobSidecars) *Block {
+	block := &Block{
+		header:       b.header,
+		transactions: b.transactions,
+		uncles:       b.uncles,
+		withdrawals:  b.withdrawals,
+	}
+	if sidecars != nil {
+		block.sidecars = make(BlobSidecars, len(sidecars))
+		copy(block.sidecars, sidecars)
+	}
+	return block
+}
+
+func (b *Block) Sidecars() BlobSidecars {
+	return b.sidecars
+}
+
+func (b *Block) CleanSidecars() {
+	b.sidecars = make(BlobSidecars, 0)
 }
 
 // Hash returns the keccak256 hash of b's header.

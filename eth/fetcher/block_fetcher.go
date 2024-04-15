@@ -119,12 +119,13 @@ type headerFilterTask struct {
 	time    time.Time       // Arrival time of the headers
 }
 
-// bodyFilterTask represents a batch of block bodies (transactions and uncles)
+// bodyFilterTask represents a batch of block bodies (transactions, sidecars and uncles)
 // needing fetcher filtering.
 type bodyFilterTask struct {
 	peer         string                 // The source peer of block bodies
 	transactions [][]*types.Transaction // Collection of transactions per block bodies
 	uncles       [][]*types.Header      // Collection of uncles per block bodies
+	sidecars     []types.BlobSidecars   // Collection of sidecars per block bodies
 	time         time.Time              // Arrival time of the blocks' contents
 }
 
@@ -302,8 +303,8 @@ func (f *BlockFetcher) FilterHeaders(peer string, headers []*types.Header, time 
 
 // FilterBodies extracts all the block bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
-func (f *BlockFetcher) FilterBodies(peer string, transactions [][]*types.Transaction, uncles [][]*types.Header, time time.Time) ([][]*types.Transaction, [][]*types.Header) {
-	log.Trace("Filtering bodies", "peer", peer, "txs", len(transactions), "uncles", len(uncles))
+func (f *BlockFetcher) FilterBodies(peer string, transactions [][]*types.Transaction, uncles [][]*types.Header, sidecars []types.BlobSidecars, time time.Time) ([][]*types.Transaction, [][]*types.Header, []types.BlobSidecars) {
+	log.Trace("Filtering bodies", "peer", peer, "txs", len(transactions), "uncles", len(uncles), "sidecars", len(sidecars))
 
 	// Send the filter channel to the fetcher
 	filter := make(chan *bodyFilterTask)
@@ -311,20 +312,20 @@ func (f *BlockFetcher) FilterBodies(peer string, transactions [][]*types.Transac
 	select {
 	case f.bodyFilter <- filter:
 	case <-f.quit:
-		return nil, nil
+		return nil, nil, nil
 	}
 	// Request the filtering of the body list
 	select {
-	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, uncles: uncles, time: time}:
+	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, uncles: uncles, sidecars: sidecars, time: time}:
 	case <-f.quit:
-		return nil, nil
+		return nil, nil, nil
 	}
 	// Retrieve the bodies remaining after filtering
 	select {
 	case task := <-filter:
-		return task.transactions, task.uncles
+		return task.transactions, task.uncles, task.sidecars
 	case <-f.quit:
-		return nil, nil
+		return nil, nil, nil
 	}
 }
 
@@ -541,9 +542,8 @@ func (f *BlockFetcher) loop() {
 					case res := <-resCh:
 						res.Done <- nil
 						// Ignoring withdrawals here, since the block fetcher is not used post-merge.
-						txs, uncles, _ := res.Res.(*eth.BlockBodiesResponse).Unpack()
-						f.FilterBodies(peer, txs, uncles, time.Now())
-
+						txs, uncles, _, sidecars := res.Res.(*eth.BlockBodiesResponse).Unpack()
+						f.FilterBodies(peer, txs, uncles, sidecars, time.Now())
 					case <-timeout.C:
 						// The peer didn't respond in time. The request
 						// was already rescheduled at this point, we were
@@ -663,7 +663,7 @@ func (f *BlockFetcher) loop() {
 			blocks := []*types.Block{}
 			// abort early if there's nothing explicitly requested
 			if len(f.completing) > 0 {
-				for i := 0; i < len(task.transactions) && i < len(task.uncles); i++ {
+				for i := 0; i < len(task.transactions) && i < len(task.uncles) && i < len(task.sidecars); i++ {
 					// Match up a body to any possible completion request
 					var (
 						matched   = false
@@ -693,6 +693,7 @@ func (f *BlockFetcher) loop() {
 							if block.Header().EmptyWithdrawalsHash() {
 								block = block.WithWithdrawals(make([]*types.Withdrawal, 0))
 							}
+							block = block.WithSidecars(task.sidecars[i])
 							block.ReceivedAt = task.time
 							blocks = append(blocks, block)
 						} else {
@@ -702,6 +703,7 @@ func (f *BlockFetcher) loop() {
 					if matched {
 						task.transactions = append(task.transactions[:i], task.transactions[i+1:]...)
 						task.uncles = append(task.uncles[:i], task.uncles[i+1:]...)
+						task.sidecars = append(task.sidecars[:i], task.sidecars[i+1:]...)
 						i--
 						continue
 					}

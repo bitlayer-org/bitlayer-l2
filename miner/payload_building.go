@@ -71,7 +71,7 @@ type Payload struct {
 	id       engine.PayloadID
 	empty    *types.Block
 	full     *types.Block
-	sidecars []*types.BlobTxSidecar
+	sidecars []*types.BlobSidecar
 	fullFees *big.Int
 	stop     chan struct{}
 	lock     sync.Mutex

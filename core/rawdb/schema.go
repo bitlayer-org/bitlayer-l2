@@ -141,6 +141,8 @@ var (
 
 	preimageCounter    = metrics.NewRegisteredCounter("db/preimage/total", nil)
 	preimageHitCounter = metrics.NewRegisteredCounter("db/preimage/hits", nil)
+
+	BlockBlobSidecarsPrefix = []byte("blobs")
 )
 
 // LegacyTxLookupEntry is the legacy TxLookupEntry definition with some unnecessary
@@ -196,6 +198,11 @@ func blockReceiptsKey(number uint64, hash common.Hash) []byte {
 // blockInternalTxsKey = blockInternalTxPrefix + num (uint64 big endian) + hash
 func blockInternalTxsKey(number uint64, hash common.Hash) []byte {
 	return append(append(blockInternalTxPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
+}
+
+// blockBlobSidecarsKey = BlockBlobSidecarsPrefix + blockNumber (uint64 big endian) + blockHash
+func blockBlobSidecarsKey(number uint64, hash common.Hash) []byte {
+	return append(append(BlockBlobSidecarsPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
 }
 
 // txLookupKey = txLookupPrefix + hash

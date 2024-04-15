@@ -92,7 +92,7 @@ type environment struct {
 	header   *types.Header
 	txs      []*types.Transaction
 	receipts []*types.Receipt
-	sidecars []*types.BlobTxSidecar
+	sidecars []*types.BlobSidecar
 	blobs    int
 }
 
@@ -113,7 +113,7 @@ func (env *environment) copy() *environment {
 	cpy.txs = make([]*types.Transaction, len(env.txs))
 	copy(cpy.txs, env.txs)
 
-	cpy.sidecars = make([]*types.BlobTxSidecar, len(env.sidecars))
+	cpy.sidecars = make([]*types.BlobSidecar, len(env.sidecars))
 	copy(cpy.sidecars, env.sidecars)
 
 	return cpy
@@ -154,8 +154,8 @@ type newWorkReq struct {
 type newPayloadResult struct {
 	err      error
 	block    *types.Block
-	fees     *big.Int               // total block fees
-	sidecars []*types.BlobTxSidecar // collected blobs of blob transactions
+	fees     *big.Int             // total block fees
+	sidecars []*types.BlobSidecar // collected blobs of blob transactions
 }
 
 // getWorkReq represents a request for getting a new sealing work with provided parameters.
@@ -767,7 +767,8 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction) ([]*
 }
 
 func (w *worker) commitBlobTransaction(env *environment, tx *types.Transaction) ([]*types.Log, error) {
-	sc := tx.BlobTxSidecar()
+	// sc := tx.BlobTxSidecar()
+	sc := types.NewBlobSidecarFromTx(tx)
 	if sc == nil {
 		panic("blob transaction without blobs in miner")
 	}
@@ -1192,6 +1193,15 @@ func (w *worker) commit(env *environment, interval func(), update bool, start ti
 		if err != nil {
 			return err
 		}
+
+		// If Cancun enabled, sidecars can't be nil then.
+		if w.chainConfig.IsCancun(env.header.Number, env.header.Time) && env.sidecars == nil {
+			sidecars := make(types.BlobSidecars, 0)
+			block = block.WithSidecars(sidecars)
+		} else {
+			block = block.WithSidecars(env.sidecars)
+		}
+
 		// If we're post merge, just ignore
 		if !w.isTTDReached(block.Header()) {
 			select {

@@ -51,6 +51,9 @@ type BlockGen struct {
 	withdrawals []*types.Withdrawal
 
 	engine consensus.Engine
+
+	// extra data of block
+	sidecars types.BlobSidecars
 }
 
 // SetCoinbase sets the coinbase of the generated block.
@@ -168,6 +171,11 @@ func (b *BlockGen) GetBalance(addr common.Address) *uint256.Int {
 // chain processing. This is best used in conjunction with raw block insertion.
 func (b *BlockGen) AddUncheckedTx(tx *types.Transaction) {
 	b.txs = append(b.txs, tx)
+}
+
+// AddBlobSidecar add block's blob sidecar for DA checking.
+func (b *BlockGen) AddBlobSidecar(sidecar *types.BlobSidecar) {
+	b.sidecars = append(b.sidecars, sidecar)
 }
 
 // Number returns the block number of the block being generated.
