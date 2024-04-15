@@ -108,6 +108,12 @@ func ValidateTransaction(tx *types.Transaction, head *types.Header, signer types
 	if tx.GasTipCapIntCmp(opts.MinTip) < 0 {
 		return fmt.Errorf("%w: tip needed %v, tip permitted %v", ErrUnderpriced, opts.MinTip, tx.GasTipCap())
 	}
+
+	if tx.Type() == types.LegacyTxType {
+		if tx.EffectiveGasTipIntCmp(opts.MinTip, head.BaseFee) < 0 {
+			return fmt.Errorf("%w: effective tip needed %v, tip permitted %v, baefee %v", ErrUnderpriced, opts.MinTip, tx.GasTipCap(), head.BaseFee)
+		}
+	}
 	// Ensure blob transactions have valid commitments
 	if tx.Type() == types.BlobTxType {
 		sidecar := tx.BlobTxSidecar()
