@@ -1623,7 +1623,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 
 	lastBlk := chain[len(chain)-1]
 	if bc.chainConfig.Merlion != nil && bc.chainConfig.IsCancun(lastBlk.Number(), lastBlk.Time()) {
+		println("check data availableinbatch...")
 		if _, err := CheckDataAvailableInBatch(bc, chain); err != nil {
+			println("CheckDataAvailableInBatch", "err", err.Error())
 			log.Error("CheckDataAvailableInBatch", "err", err)
 			return 0, err
 		}

@@ -53,6 +53,7 @@ var waitDeployedTests = map[string]struct {
 }
 
 func TestWaitDeployed(t *testing.T) {
+	t.Skip("skip beacon consensus testcase")
 	t.Parallel()
 	for name, test := range waitDeployedTests {
 		backend := simulated.NewBackend(

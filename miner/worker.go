@@ -994,6 +994,10 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 	}
 	// Apply EIP-4844, EIP-4788.
 	if w.chainConfig.IsCancun(header.Number, header.Time) {
+		if w.chainConfig.Merlion != nil {
+			header.WithdrawalsHash = &types.EmptyWithdrawalsHash
+		}
+
 		var excessBlobGas uint64
 		if w.chainConfig.IsCancun(parent.Number, parent.Time) {
 			excessBlobGas = eip4844.CalcExcessBlobGas(*parent.ExcessBlobGas, *parent.BlobGasUsed)

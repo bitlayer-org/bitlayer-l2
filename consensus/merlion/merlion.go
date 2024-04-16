@@ -631,10 +631,6 @@ func (c *Merlion) Prepare(chain consensus.ChainHeaderReader, header *types.Heade
 		header.Time = uint64(time.Now().Unix())
 	}
 
-	if c.chainConfig.IsCancun(header.Number, header.Time) {
-		header.WithdrawalsHash = &types.EmptyWithdrawalsHash
-	}
-
 	return nil
 }
 
