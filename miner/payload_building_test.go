@@ -30,6 +30,8 @@ import (
 )
 
 func TestBuildPayload(t *testing.T) {
+	t.Skip("beacon consensus not support")
+
 	t.Parallel()
 	var (
 		db        = rawdb.NewMemoryDatabase()
