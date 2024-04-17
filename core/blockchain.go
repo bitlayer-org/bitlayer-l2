@@ -1342,12 +1342,48 @@ func (bc *BlockChain) writeBlockWithoutState(block *types.Block, td *big.Int) (e
 	// if cancun is enabled, here need to write sidecars too
 	if bc.chainConfig.IsCancun(block.Number(), block.Time()) {
 		rawdb.WriteBlobSidecars(batch, block.Hash(), block.NumberU64(), block.Sidecars())
+		bc.deleteExpritedBlobSidecars(block)
 	}
 	bc.writeFinalizedBlock(block)
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to write block into disk", "err", err)
 	}
 	return nil
+}
+
+func (bc *BlockChain) deleteExpritedBlobSidecars(block *types.Block) {
+	_, isMerlionEngine := bc.Engine().(consensus.MerlionEngine)
+	if !isMerlionEngine {
+		return
+	}
+
+	// TODO optimize
+	minTimeElapsed := params.MinExpiredForBlobRequests
+	extraTimeElapsed := params.DefaultExtraReserveForBlobRequests
+	if block.Header().Time <= *bc.chainConfig.CancunTime+minTimeElapsed+extraTimeElapsed {
+		return
+	}
+
+	latestExpiredBLockNumber := (block.Header().Time - minTimeElapsed - extraTimeElapsed) / bc.chainConfig.Merlion.Period
+	num := latestExpiredBLockNumber
+	for {
+		header := bc.GetHeaderByNumber(num)
+		if header == nil || header.Time < *bc.chainConfig.CancunTime {
+			break
+		}
+
+		sidecars := rawdb.ReadBlobSidecars(bc.db, header.Hash(), num)
+		if sidecars != nil {
+			rawdb.DeleteBlobSidecars(bc.db, header.Hash(), num)
+		} else {
+			break
+		}
+		if num > 0 {
+			num--
+		} else {
+			break
+		}
+	}
 }
 
 func (bc *BlockChain) writeFinalizedBlock(block *types.Block) {
@@ -1405,6 +1441,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		// if cancun is enabled, here need to write sidecars too
 		if bc.chainConfig.IsCancun(block.Number(), block.Time()) {
 			rawdb.WriteBlobSidecars(blockBatch, block.Hash(), block.NumberU64(), block.Sidecars())
+			bc.deleteExpritedBlobSidecars(block)
 		}
 		bc.writeFinalizedBlock(block)
 		if err := blockBatch.Write(); err != nil {

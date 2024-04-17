@@ -176,8 +176,8 @@ const (
 )
 
 var (
-	MinBlocksForBlobRequests           uint64 = 524288              // it keeps blob data available for ~18.2 days in local, ref: https://github.com/bnb-chain/BEPs/blob/master/BEPs/BEP-336.md#51-parameters.
-	DefaultExtraReserveForBlobRequests uint64 = 1 * (24 * 3600) / 3 // it adds more time for expired blobs for some request cases, like expiry blob when remote peer is syncing, default 1 day.
+	MinExpiredForBlobRequests          uint64 = 1572864 // it keeps blob data available for ~18.2 days in local, ref: https://github.com/bnb-chain/BEPs/blob/master/BEPs/BEP-336.md#51-parameters.
+	DefaultExtraReserveForBlobRequests uint64 = 86400   // it adds more time for expired blobs for some request cases, like expiry blob when remote peer is syncing, default 1 day.
 )
 
 // Gas discount table for BLS12-381 G1 and G2 multi exponentiation operations
