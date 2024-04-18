@@ -918,6 +918,18 @@ Please note that --` + MetricsHTTPFlag.Name + ` must be set to start the server.
 		Name:  "traceaction",
 		Usage: "Trace internal tx call/create/suicide action, 0=no trace, 1=trace only native token > 0, 2=trace all",
 	}
+	OverrideMinExpiredForBlobRequests = &cli.Uint64Flag{
+		Name:     "override.minforblobrequest",
+		Usage:    "It keeps blob data available for min expire in local, only for testing purpose",
+		Value:    params.MinExpiredForBlobRequests,
+		Category: flags.EthCategory,
+	}
+	OverrideDefaultExtraReserveForBlobRequests = &cli.Uint64Flag{
+		Name:     "override.defaultextrareserve",
+		Usage:    "It adds more extra time for expired blobs for some request cases, only for testing purpose",
+		Value:    params.DefaultExtraReserveForBlobRequests,
+		Category: flags.EthCategory,
+	}
 )
 
 var (

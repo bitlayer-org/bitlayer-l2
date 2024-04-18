@@ -147,6 +147,8 @@ var (
 		utils.LogDebugFlag,
 		utils.LogBacktraceAtFlag,
 		utils.TraceActionFlag,
+		utils.OverrideMinExpiredForBlobRequests,
+		utils.OverrideDefaultExtraReserveForBlobRequests,
 	}, utils.NetworkFlags, utils.DatabaseFlags)
 
 	rpcFlags = []cli.Flag{

@@ -4326,3 +4326,23 @@ func TestEIP3651(t *testing.T) {
 		t.Fatalf("sender balance incorrect: expected %d, got %d", expected, actual)
 	}
 }
+
+func TestBlobSidecars(t *testing.T) {
+	db := rawdb.NewMemoryDatabase()
+	hash := common.Hash{1}
+	var blocknumber uint64 = 1
+	sidecarsw := make(types.BlobSidecars, 0)
+	rawdb.WriteBlobSidecars(db, hash, blocknumber, sidecarsw)
+
+	sidecarsr := rawdb.ReadBlobSidecars(db, hash, blocknumber)
+	if sidecarsr == nil {
+		t.Fatalf("write then read ,sidecars is nil")
+	}
+
+	rawdb.DeleteBlobSidecars(db, hash, blocknumber)
+
+	sidecarsrd := rawdb.ReadBlobSidecars(db, hash, blocknumber)
+	if sidecarsrd != nil {
+		t.Fatalf("write, delete then read ,sidecars not nil")
+	}
+}

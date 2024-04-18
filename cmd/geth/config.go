@@ -177,6 +177,15 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 		v := ctx.Uint64(utils.OverrideVerkle.Name)
 		cfg.Eth.OverrideVerkle = &v
 	}
+	if ctx.IsSet(utils.OverrideMinExpiredForBlobRequests.Name) {
+		params.MinExpiredForBlobRequests = ctx.Uint64(utils.OverrideMinExpiredForBlobRequests.Name)
+		log.Info("set params.MinExpiredForBlobRequests = ", params.MinExpiredForBlobRequests)
+	}
+	if ctx.IsSet(utils.OverrideDefaultExtraReserveForBlobRequests.Name) {
+		params.DefaultExtraReserveForBlobRequests = ctx.Uint64(utils.OverrideDefaultExtraReserveForBlobRequests.Name)
+		log.Info("set params.DefaultExtraReserveForBlobRequests = ", params.DefaultExtraReserveForBlobRequests)
+
+	}
 	backend, eth := utils.RegisterEthService(stack, &cfg.Eth)
 
 	// Create gauge with geth system and build information
