@@ -1366,7 +1366,12 @@ func (bc *BlockChain) deleteExpritedBlobSidecars(block *types.Block) {
 	}
 
 	latestExpiredBLockNumber := (block.Header().Time - minExpired - extraExpired) / bc.chainConfig.Merlion.Period
-	num := latestExpiredBLockNumber
+	var num uint64 = 0
+	if block.NumberU64() > latestExpiredBLockNumber {
+		num = block.NumberU64() - latestExpiredBLockNumber
+	} else {
+		return
+	}
 	for {
 		header := bc.GetHeaderByNumber(num)
 		if header == nil || header.Time < *bc.chainConfig.CancunTime {
