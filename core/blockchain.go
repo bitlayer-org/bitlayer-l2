@@ -1379,7 +1379,7 @@ func (bc *BlockChain) deleteExpritedBlobSidecars(block *types.Block) {
 		sidecars := rawdb.ReadBlobSidecars(bc.db, header.Hash(), num)
 		if sidecars != nil {
 			rawdb.DeleteBlobSidecars(bc.db, header.Hash(), num)
-			log.Info("delete blobsidecars header hash ", header.Hash().String(), "number", num, "time", header.Time, "latest block num ", block.Header().Number.String(), "time", block.Header().Time, "extraExpired", extraExpired, "extraExpired", extraExpired, "Period", bc.chainConfig.Merlion.Period)
+			log.Info("delete blobsidecars header hash ", header.Hash().String(), "number", num, "time", header.Time, "latest block num ", block.Header().Number.String(), "time", block.Header().Time, "minExpired", minExpired, "extraExpired", extraExpired, "Period", bc.chainConfig.Merlion.Period)
 		} else {
 			break
 		}
