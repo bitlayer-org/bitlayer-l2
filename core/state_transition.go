@@ -468,6 +468,13 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// st.state.AddBalance(st.evm.Context.Coinbase, fee)
 		if st.evm.ChainConfig().Merlion != nil {
 			st.state.AddBalance(consensus.FeeRecoder, fee)
+			// add extra blob fee reward
+			if rules.IsCancun {
+				blobFee := new(big.Int).SetUint64(st.blobGasUsed())
+				blobFee.Mul(blobFee, st.evm.Context.BlobBaseFee)
+				blobFeeU256, _ := uint256.FromBig(blobFee)
+				st.state.AddBalance(consensus.FeeRecoder, blobFeeU256)
+			}
 		} else {
 			st.state.AddBalance(st.evm.Context.Coinbase, fee)
 		}
