@@ -184,7 +184,6 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 	if ctx.IsSet(utils.OverrideDefaultExtraReserveForBlobRequests.Name) {
 		params.DefaultExtraReserveForBlobRequests = ctx.Uint64(utils.OverrideDefaultExtraReserveForBlobRequests.Name)
 		log.Info("set params.DefaultExtraReserveForBlobRequests = ", params.DefaultExtraReserveForBlobRequests)
-
 	}
 	backend, eth := utils.RegisterEthService(stack, &cfg.Eth)
 
