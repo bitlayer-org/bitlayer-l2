@@ -1361,7 +1361,7 @@ func (bc *BlockChain) deleteExpritedBlobSidecars(block *types.Block) {
 	minExpired := params.MinExpiredForBlobRequests
 	extraExpired := params.DefaultExtraReserveForBlobRequests
 	if block.Header().Time <= *bc.chainConfig.CancunTime+minExpired+extraExpired {
-		log.Info("no blob expired num ", block.Header().Number.String(), "time", block.Header().Time, "extraExpired", extraExpired, "extraExpired", extraExpired, "Period", bc.chainConfig.Merlion.Period)
+		log.Info("no blob expired num ", block.Header().Number.String(), "time", block.Header().Time, "minExpired", minExpired, "extraExpired", extraExpired, "Period", bc.chainConfig.Merlion.Period)
 		return
 	}
 
