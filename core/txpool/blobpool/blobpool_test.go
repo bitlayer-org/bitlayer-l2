@@ -200,7 +200,6 @@ func makeTx(nonce uint64, gasTipCap uint64, gasFeeCap uint64, blobFeeCap uint64,
 // makeUnsignedTx is a utility method to construct a random blob tranasaction
 // without signing it.
 func makeUnsignedTx(nonce uint64, gasTipCap uint64, gasFeeCap uint64, blobFeeCap uint64) *types.BlobTx {
-	gasTipCap += 100000000
 	return &types.BlobTx{
 		ChainID:    uint256.MustFromBig(testChainConfig.ChainID),
 		Nonce:      nonce,
@@ -1227,7 +1226,7 @@ func TestAdd(t *testing.T) {
 		// Create a blob pool out of the pre-seeded dats
 		chain := &testBlockChain{
 			config:  testChainConfig,
-			basefee: uint256.NewInt(1050),
+			basefee: uint256.NewInt(0),
 			blobfee: uint256.NewInt(105),
 			statedb: statedb,
 		}
