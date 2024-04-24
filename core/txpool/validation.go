@@ -110,7 +110,16 @@ func ValidateTransaction(tx *types.Transaction, head *types.Header, signer types
 		return fmt.Errorf("%w: tip needed %v, tip permitted %v", ErrUnderpriced, opts.MinTip, tx.GasTipCap())
 	}
 
-	minBaseFee := big.NewInt(7)
+	var minBaseFee *big.Int
+
+	if head.BaseFee == nil {
+		minBaseFee = nil
+	} else {
+		minBaseFee = big.NewInt(7)
+		if head.BaseFee.Cmp(minBaseFee) < 0 {
+			minBaseFee = head.BaseFee
+		}
+	}
 	if tx.EffectiveGasTipIntCmp(opts.MinTip, minBaseFee) < 0 {
 		return fmt.Errorf("%w: effective tip needed %v, tip permitted %v, capfee %v, baefee %v", ErrUnderpriced, opts.MinTip, tx.GasTipCap(), tx.GasFeeCap(), head.BaseFee)
 	}
