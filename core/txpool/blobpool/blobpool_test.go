@@ -1226,7 +1226,7 @@ func TestAdd(t *testing.T) {
 		// Create a blob pool out of the pre-seeded dats
 		chain := &testBlockChain{
 			config:  testChainConfig,
-			basefee: uint256.NewInt(1050),
+			basefee: uint256.NewInt(0),
 			blobfee: uint256.NewInt(105),
 			statedb: statedb,
 		}

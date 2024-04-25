@@ -103,16 +103,25 @@ func ValidateTransaction(tx *types.Transaction, head *types.Header, signer types
 	if tx.Gas() < intrGas {
 		return fmt.Errorf("%w: needed %v, allowed %v", core.ErrIntrinsicGas, intrGas, tx.Gas())
 	}
+
 	// Ensure the gasprice is high enough to cover the requirement of the calling
 	// pool and/or block producer
 	if tx.GasTipCapIntCmp(opts.MinTip) < 0 {
 		return fmt.Errorf("%w: tip needed %v, tip permitted %v", ErrUnderpriced, opts.MinTip, tx.GasTipCap())
 	}
 
-	if tx.Type() == types.LegacyTxType {
-		if tx.EffectiveGasTipIntCmp(opts.MinTip, head.BaseFee) < 0 {
-			return fmt.Errorf("%w: effective tip needed %v, tip permitted %v, baefee %v", ErrUnderpriced, opts.MinTip, tx.GasTipCap(), head.BaseFee)
+	var minBaseFee *big.Int
+
+	if head.BaseFee == nil {
+		minBaseFee = nil
+	} else {
+		minBaseFee = big.NewInt(7)
+		if head.BaseFee.Cmp(minBaseFee) < 0 {
+			minBaseFee = head.BaseFee
 		}
+	}
+	if tx.EffectiveGasTipIntCmp(opts.MinTip, minBaseFee) < 0 {
+		return fmt.Errorf("%w: effective tip needed %v, tip permitted %v, capfee %v, baefee %v", ErrUnderpriced, opts.MinTip, tx.GasTipCap(), tx.GasFeeCap(), head.BaseFee)
 	}
 	// Ensure blob transactions have valid commitments
 	if tx.Type() == types.BlobTxType {
