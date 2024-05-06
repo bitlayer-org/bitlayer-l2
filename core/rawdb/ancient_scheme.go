@@ -35,8 +35,8 @@ const (
 	// ChainFreezerDifficultyTable indicates the name of the freezer total difficulty table.
 	ChainFreezerDifficultyTable = "diffs"
 
-	// freezerInternalTxTable indicates the name of the freezer internal tx table.
-	// freezerInternalTxTable = "internalTx"
+	// FreezerInternalTxTable indicates the name of the freezer internal tx table.
+	ChainFreezerInternalTxTable = "internalTx"
 )
 
 // chainFreezerNoSnappy configures whether compression is disabled for the ancient-tables.
@@ -47,7 +47,10 @@ var chainFreezerNoSnappy = map[string]bool{
 	ChainFreezerBodiesTable:     false,
 	ChainFreezerReceiptTable:    false,
 	ChainFreezerDifficultyTable: true,
+	ChainFreezerInternalTxTable: false,
 }
+
+var additionTables = []string{ChainFreezerInternalTxTable}
 
 const (
 	// stateHistoryTableSize defines the maximum size of freezer data files.
