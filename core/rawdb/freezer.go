@@ -326,8 +326,10 @@ func (f *Freezer) TruncateHead(items uint64) (uint64, error) {
 			}
 			nt, err := table.resetItems(items)
 			if err != nil {
+				log.Info("traceaction Reset Table fail!  head", items, "kind", kind, " error ", err.Error())
 				return 0, err
 			}
+			log.Info("traceaction Reset Table!  head", items, "kind", kind)
 			f.tables[kind] = nt
 			continue
 		}
@@ -457,10 +459,11 @@ func (f *Freezer) repair() error {
 			if EmptyTable(table) {
 				nt, err := table.resetItems(head)
 				if err != nil {
+					log.Info("traceaction Reset Table fail!  head", head, "kind", kind, " error ", err.Error())
 					return err
 				}
 				f.tables[kind] = nt
-				log.Info("traceaction Reset Table", "kind", kind, "tail", f.tables[kind].itemHidden.Load(), "frozen", f.tables[kind].items.Load())
+				log.Info("traceaction Reset Table head", head, "kind", kind, "tail", f.tables[kind].itemHidden.Load(), "frozen", f.tables[kind].items.Load())
 			}
 		}
 		if err := table.truncateHead(head); err != nil {
@@ -584,48 +587,6 @@ func (f *Freezer) MigrateTable(kind string, convert convertLegacyFn) error {
 	if err := os.Remove(migrationPath); err != nil {
 		return err
 	}
-	return nil
-}
-
-// ResetTable will reset certain table with new start point
-// only used for ChainFreezerBlobSidecarTable now
-func (f *Freezer) ResetTable(kind string, startAt uint64, onlyEmpty bool) error {
-	if f.readonly {
-		return errReadOnly
-	}
-
-	f.writeLock.Lock()
-	defer f.writeLock.Unlock()
-
-	t, exist := f.tables[kind]
-	if !exist {
-		return errors.New("you reset a non-exist table")
-	}
-
-	// if you reset a non empty table just skip
-	if onlyEmpty && !EmptyTable(t) {
-		return nil
-	}
-
-	if err := f.Sync(); err != nil {
-		return err
-	}
-	nt, err := t.resetItems(startAt)
-	if err != nil {
-		return err
-	}
-	f.tables[kind] = nt
-
-	// // repair all tables with same tail & head
-	// if err := f.repair(); err != nil {
-	// 	for _, table := range f.tables {
-	// 		table.Close()
-	// 	}
-	// 	return err
-	// }
-
-	// f.writeBatch = newFreezerBatch(f)
-	log.Info("Reset Table", "kind", kind, "tail", f.tables[kind].itemHidden.Load(), "frozen", f.tables[kind].items.Load())
 	return nil
 }
 
