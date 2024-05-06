@@ -59,6 +59,8 @@ func NewEVMInterpreter(evm *EVM) *EVMInterpreter {
 	switch {
 	case evm.chainRules.IsCancun:
 		table = &cancunInstructionSet
+	case evm.chainRules.IsMtGox:
+		table = &mtGoxInstructionSet
 	case evm.chainRules.IsShanghai:
 		table = &shanghaiInstructionSet
 	case evm.chainRules.IsMerge:
