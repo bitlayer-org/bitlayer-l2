@@ -156,7 +156,7 @@ var (
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(0),
 		PizzaTime:           newUint64(0),
-		MtGoxTime:           newUint64(0),
+		// MtGoxTime:           newUint64(0),
 		Merlion: &MerlionConfig{
 			Period: 3,
 			Epoch:  200,
@@ -182,7 +182,7 @@ var (
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(0),
 		PizzaTime:           newUint64(1711965600), // 2024.04.01 10:00:00 UTC
-		MtGoxTime:           newUint64(0),
+		MtGoxTime:           newUint64(1715335200),
 		Merlion: &MerlionConfig{
 			Period: 3,
 			Epoch:  200,
