@@ -302,7 +302,12 @@ func (f *chainFreezer) freezeRange(nfdb *nofreezedb, number, limit uint64) (hash
 			if err := op.AppendRaw(ChainFreezerInternalTxTable, number, internalTxs); err != nil {
 				return fmt.Errorf("can't write internalTxs to Freezer: %v", err)
 			}
-			log.Debug("traceaction ancient ", number)
+			if internalTxs == nil {
+				log.Debug("traceaction ancient ", number, " internalTxs nil")
+
+			} else {
+				log.Debug("traceaction ancient ", number, " internalTxs ", len(internalTxs))
+			}
 
 			hashes = append(hashes, hash)
 		}

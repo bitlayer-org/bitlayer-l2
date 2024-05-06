@@ -16,13 +16,17 @@ func ReadInternalTxsRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.Ra
 		if isCanon(reader, number, hash) {
 			data, _ = reader.Ancient(ChainFreezerInternalTxTable, number)
 			if data != nil {
-				log.Debug("traceaction read from ancientdb, number", number)
+				log.Debug("traceaction read from ancientdb, number", number, " len ", len(data))
 				return nil
 			}
 		}
-		log.Debug("traceaction read from fastdb, number", number)
 		// If not, try reading from leveldb
 		data, _ = db.Get(blockInternalTxsKey(number, hash))
+		if data == nil {
+			log.Debug("traceaction read from fastdb, number", number, " len nil")
+		} else {
+			log.Debug("traceaction read from fastdb, number", number, " len ", len(data))
+		}
 		return nil
 	})
 	return data
