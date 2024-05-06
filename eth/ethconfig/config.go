@@ -156,6 +156,9 @@ type Config struct {
 	RPCTxFeeCap float64
 
 	// OverrideCancun (TODO: remove after the fork)
+	OverrideMtGox *uint64 `toml:",omitempty"`
+
+	// OverrideCancun (TODO: remove after the fork)
 	OverrideCancun *uint64 `toml:",omitempty"`
 
 	// OverrideVerkle (TODO: remove after the fork)
