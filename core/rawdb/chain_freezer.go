@@ -174,6 +174,7 @@ func (f *chainFreezer) freeze(db ethdb.KeyValueStore) {
 			// Always keep the genesis block in active database
 			if first+uint64(i) != 0 {
 				DeleteBlockWithoutNumber(batch, ancients[i], first+uint64(i))
+				DeleteInternalTxs(batch, ancients[i], first+uint64(i))
 				DeleteCanonicalHash(batch, first+uint64(i))
 			}
 		}
@@ -192,6 +193,7 @@ func (f *chainFreezer) freeze(db ethdb.KeyValueStore) {
 				for _, hash := range dangling {
 					log.Trace("Deleting side chain", "number", number, "hash", hash)
 					DeleteBlock(batch, hash, number)
+					DeleteInternalTxs(batch, hash, number)
 				}
 			}
 		}
@@ -225,6 +227,7 @@ func (f *chainFreezer) freeze(db ethdb.KeyValueStore) {
 					// Delete all block data associated with the child
 					log.Debug("Deleting dangling block", "number", tip, "hash", children[i], "parent", child.ParentHash)
 					DeleteBlock(batch, children[i], tip)
+					DeleteInternalTxs(batch, children[i], tip)
 				}
 				dangling = children
 				tip++
@@ -277,6 +280,8 @@ func (f *chainFreezer) freezeRange(nfdb *nofreezedb, number, limit uint64) (hash
 				return fmt.Errorf("total difficulty missing, can't freeze block %d", number)
 			}
 
+			internalTxs := ReadInternalTxsRLP(nfdb, hash, number)
+
 			// Write to the batch.
 			if err := op.AppendRaw(ChainFreezerHashTable, number, hash[:]); err != nil {
 				return fmt.Errorf("can't write hash to Freezer: %v", err)
@@ -293,6 +298,11 @@ func (f *chainFreezer) freezeRange(nfdb *nofreezedb, number, limit uint64) (hash
 			if err := op.AppendRaw(ChainFreezerDifficultyTable, number, td); err != nil {
 				return fmt.Errorf("can't write td to Freezer: %v", err)
 			}
+
+			if err := op.AppendRaw(ChainFreezerInternalTxTable, number, internalTxs); err != nil {
+				return fmt.Errorf("can't write internalTxs to Freezer: %v", err)
+			}
+			log.Debug("traceaction ancient ", number)
 
 			hashes = append(hashes, hash)
 		}

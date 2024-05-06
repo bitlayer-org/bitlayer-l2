@@ -12,12 +12,16 @@ import (
 func ReadInternalTxsRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 	var data []byte
 	db.ReadAncients(func(reader ethdb.AncientReaderOp) error {
-		// // // Check if the data is in ancients
-		// if isCanon(reader, number, hash) {
-		// 	data, _ = reader.Ancient(freezerInternalTxTable, number)
-		// 	return nil
-		// }
-		// // If not, try reading from leveldb
+		// // Check if the data is in ancients
+		if isCanon(reader, number, hash) {
+			data, _ = reader.Ancient(ChainFreezerInternalTxTable, number)
+			if data != nil {
+				log.Debug("traceaction read from ancientdb, number", number)
+				return nil
+			}
+		}
+		log.Debug("traceaction read from fastdb, number", number)
+		// If not, try reading from leveldb
 		data, _ = db.Get(blockInternalTxsKey(number, hash))
 		return nil
 	})
@@ -51,7 +55,7 @@ func WriteInternalTxs(db ethdb.KeyValueWriter, hash common.Hash, number uint64, 
 	if err != nil {
 		log.Crit("Failed to encode block internal txs", "err", err)
 	}
-	log.Debug("internal txs", "hash", hash.String(), "number", number, "lens", len(internalTxs))
+	log.Debug("traceaction WriteInternalTxs internal txs", "hash", hash.String(), "number", number, "lens", len(internalTxs))
 	// Store the flattened receipt slice
 	if err := db.Put(blockInternalTxsKey(number, hash), bytes); err != nil {
 		log.Crit("Failed to encode block internal txs", "err", err)
@@ -60,6 +64,7 @@ func WriteInternalTxs(db ethdb.KeyValueWriter, hash common.Hash, number uint64, 
 
 // DeleteInternalTxs removes all internal transactions associated with a block hash.
 func DeleteInternalTxs(db ethdb.KeyValueWriter, hash common.Hash, number uint64) {
+	log.Debug("traceaction DeleteInternalTxs", hash.String(), "  ", number)
 	if err := db.Delete(blockInternalTxsKey(number, hash)); err != nil {
 		log.Crit("Failed to delete block internal txs", "err", err)
 	}
