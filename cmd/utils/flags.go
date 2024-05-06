@@ -247,6 +247,11 @@ var (
 		Value:    2048,
 		Category: flags.EthCategory,
 	}
+	OverrideMtGox = &cli.Uint64Flag{
+		Name:     "override.mtgox",
+		Usage:    "Manually specify the MtGox fork timestamp, overriding the bundled setting",
+		Category: flags.EthCategory,
+	}
 	OverrideCancun = &cli.Uint64Flag{
 		Name:     "override.cancun",
 		Usage:    "Manually specify the Cancun fork timestamp, overriding the bundled setting",

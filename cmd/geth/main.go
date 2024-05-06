@@ -65,6 +65,7 @@ var (
 		utils.NoUSBFlag, // deprecated
 		utils.USBFlag,
 		utils.SmartCardDaemonPathFlag,
+		utils.OverrideMtGox,
 		utils.OverrideCancun,
 		utils.OverrideVerkle,
 		utils.EnablePersonal,

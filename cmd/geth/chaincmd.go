@@ -183,6 +183,10 @@ func initGenesis(ctx *cli.Context) error {
 	defer stack.Close()
 
 	var overrides core.ChainOverrides
+	if ctx.IsSet(utils.OverrideMtGox.Name) {
+		v := ctx.Uint64(utils.OverrideMtGox.Name)
+		overrides.OverrideMtGox = &v
+	}
 	if ctx.IsSet(utils.OverrideCancun.Name) {
 		v := ctx.Uint64(utils.OverrideCancun.Name)
 		overrides.OverrideCancun = &v
