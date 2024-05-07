@@ -304,7 +304,6 @@ func (f *chainFreezer) freezeRange(nfdb *nofreezedb, number, limit uint64) (hash
 			}
 			if internalTxs == nil {
 				log.Debug("traceaction ancient ", number, " internalTxs nil")
-
 			} else {
 				log.Debug("traceaction ancient ", number, " internalTxs ", len(internalTxs))
 			}
