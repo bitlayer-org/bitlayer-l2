@@ -182,7 +182,7 @@ var (
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(0),
 		PizzaTime:           newUint64(1711965600), // 2024.04.01 10:00:00 UTC
-		MtGoxTime:           newUint64(1715594400), // 2024-05-13 10:00:00 UTC
+		MtGoxTime:           newUint64(1715767200), // 2024-05-14 10:00:00 UTC
 		Merlion: &MerlionConfig{
 			Period: 3,
 			Epoch:  200,
