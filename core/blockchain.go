@@ -770,6 +770,7 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, time uint64, root common.Ha
 			// removed in the hc.SetHead function.
 			rawdb.DeleteBody(db, hash, num)
 			rawdb.DeleteReceipts(db, hash, num)
+			rawdb.DeleteInternalTxs(db, hash, num)
 		}
 		// Todo(rjl493456442) txlookup, bloombits, etc
 	}
