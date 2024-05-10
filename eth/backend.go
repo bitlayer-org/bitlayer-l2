@@ -210,8 +210,8 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	)
 	// Override the chain config with provided settings.
 	var overrides core.ChainOverrides
-	if config.OverrideMtGox != nil {
-		overrides.OverrideMtGox = config.OverrideMtGox
+	if config.OverrideHalving != nil {
+		overrides.OverrideHalving = config.OverrideHalving
 	}
 	if config.OverrideCancun != nil {
 		overrides.OverrideCancun = config.OverrideCancun

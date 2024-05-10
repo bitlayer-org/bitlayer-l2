@@ -56,7 +56,7 @@ var (
 	londonInstructionSet           = newLondonInstructionSet()
 	mergeInstructionSet            = newMergeInstructionSet()
 	shanghaiInstructionSet         = newShanghaiInstructionSet()
-	mtGoxInstructionSet            = newMtGoxInstructionSet()
+	halvingInstructionSet          = newHalvingInstructionSet()
 	cancunInstructionSet           = newCancunInstructionSet()
 )
 
@@ -82,7 +82,7 @@ func validate(jt JumpTable) JumpTable {
 }
 
 func newCancunInstructionSet() JumpTable {
-	instructionSet := newMtGoxInstructionSet()
+	instructionSet := newHalvingInstructionSet()
 	enable4844(&instructionSet) // EIP-4844 (BLOBHASH opcode)
 	enable7516(&instructionSet) // EIP-7516 (BLOBBASEFEE opcode)
 	// enable1153(&instructionSet) // EIP-1153 "Transient Storage"
@@ -91,7 +91,7 @@ func newCancunInstructionSet() JumpTable {
 	return validate(instructionSet)
 }
 
-func newMtGoxInstructionSet() JumpTable {
+func newHalvingInstructionSet() JumpTable {
 	instructionSet := newShanghaiInstructionSet()
 	// enable4844(&instructionSet) // EIP-4844 (BLOBHASH opcode)
 	// enable7516(&instructionSet) // EIP-7516 (BLOBBASEFEE opcode)
