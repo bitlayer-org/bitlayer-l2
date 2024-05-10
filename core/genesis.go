@@ -419,8 +419,9 @@ func (e *GenesisMismatchError) Error() string {
 
 // ChainOverrides contains the changes to chain config.
 type ChainOverrides struct {
-	OverrideCancun *uint64
-	OverrideVerkle *uint64
+	OverrideHalving *uint64
+	OverrideCancun  *uint64
+	OverrideVerkle  *uint64
 }
 
 // SetupGenesisBlock writes or updates the genesis block in db.
@@ -446,6 +447,9 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, triedb *trie.Database, gen
 	}
 	applyOverrides := func(config *params.ChainConfig) {
 		if config != nil {
+			if overrides != nil && overrides.OverrideHalving != nil {
+				config.HalvingTime = overrides.OverrideHalving
+			}
 			if overrides != nil && overrides.OverrideCancun != nil {
 				config.CancunTime = overrides.OverrideCancun
 			}

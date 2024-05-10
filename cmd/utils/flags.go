@@ -247,6 +247,11 @@ var (
 		Value:    2048,
 		Category: flags.EthCategory,
 	}
+	OverrideHalving = &cli.Uint64Flag{
+		Name:     "override.halving",
+		Usage:    "Manually specify the Halving fork timestamp, overriding the bundled setting",
+		Category: flags.EthCategory,
+	}
 	OverrideCancun = &cli.Uint64Flag{
 		Name:     "override.cancun",
 		Usage:    "Manually specify the Cancun fork timestamp, overriding the bundled setting",

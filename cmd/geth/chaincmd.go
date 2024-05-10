@@ -183,6 +183,10 @@ func initGenesis(ctx *cli.Context) error {
 	defer stack.Close()
 
 	var overrides core.ChainOverrides
+	if ctx.IsSet(utils.OverrideHalving.Name) {
+		v := ctx.Uint64(utils.OverrideHalving.Name)
+		overrides.OverrideHalving = &v
+	}
 	if ctx.IsSet(utils.OverrideCancun.Name) {
 		v := ctx.Uint64(utils.OverrideCancun.Name)
 		overrides.OverrideCancun = &v
