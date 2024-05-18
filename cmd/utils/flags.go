@@ -825,7 +825,7 @@ var (
 	}
 	GpoDisableFeeHistoryFlag = &cli.BoolFlag{
 		Name:     "gpo.disablefeehistory",
-		Usage:    "force method eth_feeHistory returns erros, true=disable false=enable",
+		Usage:    "force method eth_feeHistory returns error",
 		Value:    false,
 		Category: flags.GasPriceCategory,
 	}
