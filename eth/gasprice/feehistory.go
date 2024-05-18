@@ -212,6 +212,10 @@ func (oracle *Oracle) resolveBlockRange(ctx context.Context, reqEnd rpc.BlockNum
 // Note: baseFee includes the next block after the newest of the returned range, because this
 // value can be derived from the newest block.
 func (oracle *Oracle) FeeHistory(ctx context.Context, blocks uint64, unresolvedLastBlock rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, error) {
+	if oracle.disableFeeHistory {
+		return common.Big0, nil, nil, nil, errors.New("method FeeHistory not support")
+	}
+
 	if blocks < 1 {
 		return common.Big0, nil, nil, nil, nil // returning with no data and no error means there are no retrievable blocks
 	}

@@ -144,6 +144,7 @@ var (
 		utils.GpoPercentileFlag,
 		utils.GpoMaxGasPriceFlag,
 		utils.GpoIgnoreGasPriceFlag,
+		utils.GpoDisableFeeHistoryFlag,
 		configFileFlag,
 		utils.LogDebugFlag,
 		utils.LogBacktraceAtFlag,

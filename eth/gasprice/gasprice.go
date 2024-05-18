@@ -40,14 +40,15 @@ var (
 )
 
 type Config struct {
-	Blocks           int
-	Percentile       int
-	MaxHeaderHistory uint64
-	MaxBlockHistory  uint64
-	Default          *big.Int `toml:",omitempty"`
-	MaxPrice         *big.Int `toml:",omitempty"`
-	IgnorePrice      *big.Int `toml:",omitempty"`
-	PriceLimit       uint64
+	Blocks            int
+	Percentile        int
+	MaxHeaderHistory  uint64
+	MaxBlockHistory   uint64
+	Default           *big.Int `toml:",omitempty"`
+	MaxPrice          *big.Int `toml:",omitempty"`
+	IgnorePrice       *big.Int `toml:",omitempty"`
+	PriceLimit        uint64
+	DisableFeeHistory bool
 }
 
 // OracleBackend includes all necessary background APIs for oracle.
@@ -63,14 +64,15 @@ type OracleBackend interface {
 // Oracle recommends gas prices based on the content of recent
 // blocks. Suitable for both light and full clients.
 type Oracle struct {
-	backend     OracleBackend
-	lastHead    common.Hash
-	lastPrice   *big.Int
-	maxPrice    *big.Int
-	ignorePrice *big.Int
-	priceLimit  *big.Int
-	cacheLock   sync.RWMutex
-	fetchLock   sync.Mutex
+	backend           OracleBackend
+	lastHead          common.Hash
+	lastPrice         *big.Int
+	maxPrice          *big.Int
+	ignorePrice       *big.Int
+	priceLimit        *big.Int
+	disableFeeHistory bool
+	cacheLock         sync.RWMutex
+	fetchLock         sync.Mutex
 
 	checkBlocks, percentile           int
 	maxHeaderHistory, maxBlockHistory uint64
@@ -109,6 +111,8 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 
 	priceLimit := new(big.Int).SetUint64(params.PriceLimit)
 	log.Info("Gasprice oracle priceLimit", priceLimit.String())
+	disableFeeHistory := params.DisableFeeHistory
+	log.Info("Gasprice oracle disableFeeHistory", disableFeeHistory)
 	maxHeaderHistory := params.MaxHeaderHistory
 	if maxHeaderHistory < 1 {
 		maxHeaderHistory = 1
@@ -133,16 +137,17 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 	}()
 
 	return &Oracle{
-		backend:          backend,
-		lastPrice:        params.Default,
-		maxPrice:         maxPrice,
-		ignorePrice:      ignorePrice,
-		priceLimit:       priceLimit,
-		checkBlocks:      blocks,
-		percentile:       percent,
-		maxHeaderHistory: maxHeaderHistory,
-		maxBlockHistory:  maxBlockHistory,
-		historyCache:     cache,
+		backend:           backend,
+		lastPrice:         params.Default,
+		maxPrice:          maxPrice,
+		ignorePrice:       ignorePrice,
+		priceLimit:        priceLimit,
+		disableFeeHistory: disableFeeHistory,
+		checkBlocks:       blocks,
+		percentile:        percent,
+		maxHeaderHistory:  maxHeaderHistory,
+		maxBlockHistory:   maxBlockHistory,
+		historyCache:      cache,
 	}
 }
 
