@@ -823,6 +823,12 @@ var (
 		Value:    ethconfig.Defaults.GPO.IgnorePrice.Int64(),
 		Category: flags.GasPriceCategory,
 	}
+	GpoDisableFeeHistoryFlag = &cli.BoolFlag{
+		Name:     "gpo.disablefeehistory",
+		Usage:    "force method eth_feeHistory returns error",
+		Value:    false,
+		Category: flags.GasPriceCategory,
+	}
 
 	// Metrics flags
 	MetricsEnabledFlag = &cli.BoolFlag{
@@ -1472,6 +1478,12 @@ func setGPO(ctx *cli.Context, cfg *gasprice.Config) {
 	}
 	if ctx.IsSet(GpoIgnoreGasPriceFlag.Name) {
 		cfg.IgnorePrice = big.NewInt(ctx.Int64(GpoIgnoreGasPriceFlag.Name))
+	}
+	if ctx.IsSet(GpoIgnoreGasPriceFlag.Name) {
+		cfg.IgnorePrice = big.NewInt(ctx.Int64(GpoIgnoreGasPriceFlag.Name))
+	}
+	if ctx.IsSet(GpoDisableFeeHistoryFlag.Name) {
+		cfg.DisableFeeHistory = ctx.Bool(GpoDisableFeeHistoryFlag.Name)
 	}
 }
 
