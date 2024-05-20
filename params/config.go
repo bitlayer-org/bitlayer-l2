@@ -156,7 +156,7 @@ var (
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(0),
 		PizzaTime:           newUint64(0),
-		// HalvingTime:           newUint64(0),
+		HalvingTime:         newUint64(1717063200), // 2024-05-30 10:00:00 UTC
 		Merlion: &MerlionConfig{
 			Period: 3,
 			Epoch:  200,
