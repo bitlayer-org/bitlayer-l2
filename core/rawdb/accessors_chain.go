@@ -821,6 +821,9 @@ func writeAncientBlock(op ethdb.AncientWriteOp, block *types.Block, header *type
 	if err := op.Append(ChainFreezerDifficultyTable, num, td); err != nil {
 		return fmt.Errorf("can't append block %d total difficulty: %v", num, err)
 	}
+	if err := op.AppendRaw(ChainFreezerInternalTxTable, num, nil); err != nil {
+		return fmt.Errorf("can't append block %d internalTxs:  %v", num, err)
+	}
 	return nil
 }
 
