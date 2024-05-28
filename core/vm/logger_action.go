@@ -55,6 +55,7 @@ func (t *ActionLogger) CaptureStart(env *EVM, from common.Address, to common.Add
 func (t *ActionLogger) CaptureEnd(output []byte, gasUsed uint64, err error) {
 	t.callstack[0].GasUsed = gasUsed
 	if err != nil {
+		t.callstack[0].Output = output
 		t.callstack[0].Error = err.Error()
 		if err == ErrExecutionReverted && len(output) > 0 {
 			t.callstack[0].Output = output
@@ -129,6 +130,7 @@ func (t *ActionLogger) CaptureExit(output []byte, gasUsed uint64, err error) {
 	if err == nil {
 		call.Output = output
 	} else {
+		call.Output = output
 		call.Error = err.Error()
 		if call.OpCode == "CREATE" || call.OpCode == "CREATE2" {
 			call.To = common.Address{}
