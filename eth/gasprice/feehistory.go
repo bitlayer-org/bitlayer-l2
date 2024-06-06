@@ -216,6 +216,9 @@ func (oracle *Oracle) FeeHistory(ctx context.Context, blocks uint64, unresolvedL
 		return common.Big0, nil, nil, nil, errors.New("method FeeHistory not support")
 	}
 
+	return oracle.FeeHistory2(ctx, blocks, unresolvedLastBlock, rewardPercentiles)
+}
+func (oracle *Oracle) FeeHistory2(ctx context.Context, blocks uint64, unresolvedLastBlock rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, error) {
 	if blocks < 1 {
 		return common.Big0, nil, nil, nil, nil // returning with no data and no error means there are no retrievable blocks
 	}

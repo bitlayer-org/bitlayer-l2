@@ -661,6 +661,12 @@ web3._extend({
 			inputFormatter: [null, web3._extend.formatters.inputBlockNumberFormatter, null]
 		}),
 		new web3._extend.Method({
+			name: 'feeHistory2',
+			call: 'eth_feeHistory2',
+			params: 3,
+			inputFormatter: [null, web3._extend.formatters.inputBlockNumberFormatter, null]
+		}),
+		new web3._extend.Method({
 			name: 'getLogs',
 			call: 'eth_getLogs',
 			params: 1,
