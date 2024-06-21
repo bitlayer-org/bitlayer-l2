@@ -53,7 +53,7 @@ const (
 	inmemoryAccesslist = 21   // Number of recent accesslist snapshots to keep in memory
 
 	wiggleTime        = 500 * time.Millisecond // Random delay (per validator) to allow concurrent validators
-	minNotInTurnDelay = 500 * time.Millisecond // Minimal delay for a not-in-turn validator to seal a block
+	minNotInTurnDelay = 600 * time.Millisecond // Minimal delay for a not-in-turn validator to seal a block
 	maxValidators     = 21                     // Max validators allowed to seal.
 	blocksPerDay      = 60 * 60 * 24 / 3       // blocks produced per day
 )
