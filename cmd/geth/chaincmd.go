@@ -17,9 +17,11 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"runtime"
 	"strconv"
@@ -39,6 +41,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/node"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/urfave/cli/v2"
 )
 
@@ -474,10 +477,25 @@ func dump(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	file_name := "preimage.json"
+
 	if ctx.Bool(utils.IterativeOutputFlag.Name) {
-		state.IterativeDump(conf, json.NewEncoder(os.Stdout))
+		// state.IterativeDump(conf, json.NewEncoder(os.Stdout))
+		writer, err := os.Create(file_name)
+		defer writer.Close()
+
+		if err != nil {
+			return err
+		}
+		state.IterativeDump(conf, json.NewEncoder(writer))
+
 	} else {
-		fmt.Println(string(state.Dump(conf)))
+		// fmt.Println(string(state.Dump(conf)))
+		err := rebuild(file_name)
+		if err != nil {
+			return err
+		}
+
 	}
 	return nil
 }
@@ -486,4 +504,73 @@ func dump(ctx *cli.Context) error {
 func hashish(x string) bool {
 	_, err := strconv.Atoi(x)
 	return err != nil
+}
+
+func rebuild(file_name string) error {
+	reader, err := os.Open(file_name)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+
+	db := rawdb.NewMemoryDatabase()
+	tdb := state.NewDatabaseWithConfig(db, &trie.Config{Preimages: true})
+	sdb, _ := state.New(types.EmptyRootHash, tdb, nil)
+	s := &stateEnv{db: db, state: sdb}
+	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fmt.Println(line)
+
+		var da state.DumpAccount
+		aerr := json.Unmarshal([]byte(line), &da)
+		if aerr != nil {
+			return aerr
+		}
+		if da.Address == nil {
+			continue
+		}
+
+		fmt.Println("address ", da.Address.String())
+		fmt.Println("balance ", da.Balance)
+		fmt.Println("nonce ", da.Nonce)
+		fmt.Println("code ", len(da.Code))
+
+		balance, be := new(big.Int).SetString(da.Balance, 10)
+		if !be {
+			return err
+		}
+
+		s.state.SetBalance(*da.Address, balance)
+		if len(da.Code) > 0 {
+			s.state.SetCode(*da.Address, da.Code)
+		}
+		s.state.SetNonce(*da.Address, da.Nonce)
+		for k, v := range da.Storage {
+			s.state.SetState(*da.Address, k, common.HexToHash(v))
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	// s.state.SetBalance(common.BytesToAddress([]byte{0x01}), big.NewInt(22))
+	// s.state.SetCode(common.BytesToAddress([]byte{0x01, 0x02}), []byte{3, 3, 3, 3, 3, 3, 3})
+	// s.state.SetBalance(common.BytesToAddress([]byte{0x02}), big.NewInt(44))
+
+	root, _ := s.state.Commit(0, false)
+	// tdb.TrieDB().Commit(rootx, false)
+	println("gen root ", root.String())
+	return nil
+}
+
+type Root struct {
+	Root common.Hash `json:"root"`
+}
+
+type stateEnv struct {
+	db    ethdb.Database
+	state *state.StateDB
 }
