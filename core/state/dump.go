@@ -183,6 +183,11 @@ func (s *StateDB) DumpToCollector(c DumpCollector, conf *DumpConfig) (nextKey []
 					log.Error("Failed to decode the value returned by iterator", "error", err)
 					continue
 				}
+				if time.Since(logged) > 8*time.Second {
+					log.Info("Trie dumping in progress", "at", it.Key, "storage", storageIt.Key, "accounts", accounts,
+						"elapsed", common.PrettyDuration(time.Since(start)))
+					logged = time.Now()
+				}
 				account.Storage[common.BytesToHash(s.trie.GetKey(storageIt.Key))] = common.Bytes2Hex(content)
 			}
 		}
