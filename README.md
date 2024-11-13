@@ -1,6 +1,6 @@
 # Bitlayer Overview
 
-Bitlayer is the first Bitcoin security-equivalent layer 2 based on BitVM. It consists an EVM compatible chain/sequencer(bitlayer-l2) that can map BTC ecological assets and facilitate the entry of BTC users. Bitlayer-l2 is a fork of [geth](https://github.com/ethereum/go-ethereum).
+[Bitlayer](https://www.bitlayer.org) is the first Bitcoin security-equivalent layer 2 based on BitVM. It consists an EVM compatible chain/sequencer(bitlayer-l2) that can map BTC ecological assets and facilitate the entry of BTC users. Bitlayer-l2 is a fork of [geth](https://github.com/ethereum/go-ethereum).
 
 ## Bitlayer’s Value Propositions
 Due to the technical nature of Bitcoin, there exists a trade-off between "Security and Turing completeness" for Bitcoin layer2 solutions.
@@ -61,7 +61,7 @@ included in our repository in the `COPYING` file.
 ## Interact With Us On Social Media
 
 - Website: <https://bitlayer.org>
-- Twitter: <https://twitter.com/BitlayerLabs>
+- X (formerly Twitter): <https://x.com/BitlayerLabs>
 - Medium: <https://medium.com/@Bitlayer>
 - Email: <build@bitlayer.org>
 - GitHub: <https://github.com/bitlayer-org>
