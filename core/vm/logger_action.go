@@ -133,6 +133,7 @@ func (t *ActionLogger) CaptureExit(output []byte, gasUsed uint64, err error) {
 		call.Output = output
 		call.Error = err.Error()
 		if call.OpCode == "CREATE" || call.OpCode == "CREATE2" {
+			call.CreateAddress = call.To
 			call.To = common.Address{}
 		}
 	}

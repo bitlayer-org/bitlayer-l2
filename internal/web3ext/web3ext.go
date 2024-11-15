@@ -32,6 +32,7 @@ var Modules = map[string]string{
 	"les":      LESJs,
 	"vflux":    VfluxJs,
 	"dev":      DevJs,
+	"trace":    TraceJs,
 }
 
 const CliqueJs = `
@@ -985,6 +986,20 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'setFeeRecipient',
 			call: 'dev_setFeeRecipient',
+			params: 1
+		}),
+	],
+});
+`
+
+const TraceJs = `
+web3._extend({
+	property: 'trace',
+	methods:
+	[
+		new web3._extend.Method({
+			name: 'filter',
+			call: 'trace_filter',
 			params: 1
 		}),
 	],

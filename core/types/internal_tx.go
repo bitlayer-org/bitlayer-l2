@@ -15,18 +15,19 @@ func (d Data) MarshalText() ([]byte, error) {
 }
 
 type Action struct {
-	From         common.Address `gencodec:"required" json:"from"`
-	To           common.Address `gencodec:"optional" json:"to,omitempty"`
-	Value        *big.Int       `gencodec:"optional" json:"value,omitempty"`
-	Success      bool           `gencodec:"required" json:"success"`
-	OpCode       string         `gencodec:"required" json:"opcode"`
-	Depth        uint64         `gencodec:"required" json:"depth"`
-	Gas          uint64         `gencodec:"required" json:"gas"`
-	GasUsed      uint64         `gencodec:"required" json:"gas_used"`
-	Input        Data           `gencodec:"required" json:"input"`
-	Output       Data           `gencodec:"optional" json:"output,omitempty"`
-	TraceAddress []uint64       `gencodec:"required" json:"trace_address"`
-	Error        string         `gencodec:"optional" json:"error,omitempty"`
+	From          common.Address `gencodec:"required" json:"from"`
+	To            common.Address `gencodec:"optional" json:"to,omitempty"`
+	CreateAddress common.Address `gencodec:"optional" json:"create_address,omitempty"`
+	Value         *big.Int       `gencodec:"optional" json:"value,omitempty"`
+	Success       bool           `gencodec:"required" json:"success"`
+	OpCode        string         `gencodec:"required" json:"opcode"`
+	Depth         uint64         `gencodec:"required" json:"depth"`
+	Gas           uint64         `gencodec:"required" json:"gas"`
+	GasUsed       uint64         `gencodec:"required" json:"gas_used"`
+	Input         Data           `gencodec:"required" json:"input"`
+	Output        Data           `gencodec:"optional" json:"output,omitempty"`
+	TraceAddress  []uint64       `gencodec:"required" json:"trace_address"`
+	Error         string         `gencodec:"optional" json:"error,omitempty"`
 }
 
 type ActionConfig struct {
