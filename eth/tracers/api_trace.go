@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -175,7 +176,7 @@ func (api *TraceAPI) Filter(ctx context.Context, req *types.TraceFilterRequest) 
 						trace.Type = "call"
 						trace.Action = types.CallTraceAction{
 							From:     action.From,
-							CallType: action.OpCode,
+							CallType: strings.ToLower(action.OpCode),
 							Gas:      *gas,
 							Input:    action.Input,
 							To:       action.To,
