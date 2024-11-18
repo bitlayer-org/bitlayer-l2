@@ -26,15 +26,18 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
 type TraceAPI struct {
-	backend Backend
+	backend          Backend
+	traceFilterCount uint64
 }
 
-func NewTraceAPI(backend Backend) *TraceAPI {
-	return &TraceAPI{backend: backend}
+func NewTraceAPI(backend Backend, traceFilterCount uint64) *TraceAPI {
+	log.Info("NewTraceAPI traceFilterCount", traceFilterCount)
+	return &TraceAPI{backend: backend, traceFilterCount: traceFilterCount}
 }
 
 func (api *TraceAPI) Filter(ctx context.Context, req *types.TraceFilterRequest) (types.ParityTraces, error) {
@@ -70,8 +73,8 @@ func (api *TraceAPI) Filter(ctx context.Context, req *types.TraceFilterRequest) 
 
 	includeAll := len(fromAddresses) == 0 && len(toAddresses) == 0
 
-	// TODO max count ?
-	count := uint64(^uint(0)) // this just makes it easier to use below
+	// count := uint64(^uint(0)) // this just makes it easier to use below
+	count := api.traceFilterCount
 	if req.Count != nil {
 		count = *req.Count
 	}
@@ -196,12 +199,12 @@ func (api *TraceAPI) Filter(ctx context.Context, req *types.TraceFilterRequest) 
 }
 
 // TraceAPIs return the collection of RPC services the tracer package offers.
-func TraceAPIs(backend Backend) []rpc.API {
+func TraceAPIs(backend Backend, traceFilterCount uint64) []rpc.API {
 	// Append all the local APIs and return
 	return []rpc.API{
 		{
 			Namespace: "trace",
-			Service:   NewTraceAPI(backend),
+			Service:   NewTraceAPI(backend, traceFilterCount),
 		},
 	}
 }

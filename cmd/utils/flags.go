@@ -929,6 +929,11 @@ Please note that --` + MetricsHTTPFlag.Name + ` must be set to start the server.
 		Name:  "traceaction",
 		Usage: "Trace internal tx call/create/suicide action, 0=no trace, 1=trace only native token > 0, 2=trace all",
 	}
+	TraceFilterCount = &cli.Uint64Flag{
+		Name:  "tracefiltercount",
+		Value: ethconfig.Defaults.TraceFilterCount,
+		Usage: "trace filter count",
+	}
 )
 
 var (
@@ -1627,6 +1632,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	if ctx.IsSet(TraceActionFlag.Name) {
 		cfg.TraceAction = ctx.Int(TraceActionFlag.Name)
 	}
+	if ctx.IsSet(TraceFilterCount.Name) {
+		cfg.TraceFilterCount = ctx.Uint64(TraceFilterCount.Name)
+	}
 	setEtherbase(ctx, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
@@ -1909,7 +1917,7 @@ func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend
 		Fatalf("Failed to register the Ethereum service: %v", err)
 	}
 	stack.RegisterAPIs(tracers.APIs(backend.APIBackend))
-	stack.RegisterAPIs(tracers.TraceAPIs(backend.APIBackend))
+	stack.RegisterAPIs(tracers.TraceAPIs(backend.APIBackend, cfg.TraceFilterCount))
 	return backend.APIBackend, backend
 }
 
