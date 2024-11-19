@@ -99,14 +99,15 @@ func (t *ActionLogger) CaptureEnter(typ OpCode, from common.Address, to common.A
 
 	call := types.ActionFrame{
 		Action: types.Action{
-			OpCode:       typ.String(),
-			From:         from,
-			To:           to,
-			Value:        value,
-			Depth:        uint64(depth),
-			Gas:          gas,
-			Input:        input,
-			TraceAddress: traceAddr,
+			OpCode:        typ.String(),
+			From:          from,
+			To:            to,
+			Value:         value,
+			Depth:         uint64(depth),
+			Gas:           gas,
+			Input:         input,
+			TraceAddress:  traceAddr,
+			CreateAddress: common.Address{},
 		},
 	}
 	t.callstack = append(t.callstack, call)
