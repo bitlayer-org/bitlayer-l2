@@ -70,7 +70,6 @@ func (api *TraceAPI) Block(ctx context.Context, blockNr rpc.BlockNumber) (types.
 	}
 
 	return traces, nil
-
 }
 
 func (api *TraceAPI) Transaction(ctx context.Context, hash common.Hash) (types.ParityTraces, error) {
