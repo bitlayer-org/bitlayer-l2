@@ -1002,6 +1002,17 @@ web3._extend({
 			call: 'trace_filter',
 			params: 1
 		}),
+		new web3._extend.Method({
+			name: 'filter',
+			call: 'trace_block',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'filter',
+			call: 'trace_transaction',
+			params: 1
+		}),
 	],
 });
 `

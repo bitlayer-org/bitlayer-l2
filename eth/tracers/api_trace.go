@@ -41,6 +41,73 @@ func NewTraceAPI(backend Backend, traceFilterCount uint64) *TraceAPI {
 	return &TraceAPI{backend: backend, traceFilterCount: traceFilterCount}
 }
 
+func (api *TraceAPI) Block(ctx context.Context, blockNr rpc.BlockNumber) (types.ParityTraces, error) {
+	traces := make([]types.ParityTrace, 0)
+
+	header, err := api.backend.HeaderByNumber(ctx, blockNr)
+	if err != nil {
+		return nil, err
+	}
+	blkHash := header.Hash()
+	block, err := api.backend.BlockByHash(ctx, blkHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if block == nil {
+		return nil, fmt.Errorf("block #%s not found", blkHash)
+	}
+
+	txs := rawdb.ReadInternalTxs(api.backend.ChainDb(), block.Hash(), block.NumberU64())
+
+	for i := 0; i < len(txs); i++ {
+		tx := txs[i]
+		for j := 0; j < len(tx.Actions); j++ {
+			action := tx.Actions[j]
+			trace := make_trace(block, tx, uint64(i), action)
+			traces = append(traces, trace)
+		}
+	}
+
+	return traces, nil
+
+}
+
+func (api *TraceAPI) Transaction(ctx context.Context, hash common.Hash) (types.ParityTraces, error) {
+	traces := make([]types.ParityTrace, 0)
+	tx, blkHash, _, _, err := api.backend.GetTransaction(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+	if tx == nil {
+		return nil, fmt.Errorf("tx #%s not found", hash)
+	}
+
+	block, err := api.backend.BlockByHash(ctx, blkHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if block == nil {
+		return nil, fmt.Errorf("block #%s not found", hash)
+	}
+
+	txs := rawdb.ReadInternalTxs(api.backend.ChainDb(), block.Hash(), block.NumberU64())
+
+	for i := 0; i < len(txs); i++ {
+		tx := txs[i]
+		if tx.TxHash == hash {
+			for j := 0; j < len(tx.Actions); j++ {
+				action := tx.Actions[j]
+				trace := make_trace(block, tx, uint64(i), action)
+				traces = append(traces, trace)
+			}
+		}
+	}
+
+	return traces, nil
+}
+
 func (api *TraceAPI) Filter(ctx context.Context, req *types.TraceFilterRequest) (types.ParityTraces, error) {
 	var fromBlock uint64
 	var toBlock uint64
@@ -77,7 +144,11 @@ func (api *TraceAPI) Filter(ctx context.Context, req *types.TraceFilterRequest) 
 	// count := uint64(^uint(0)) // this just makes it easier to use below
 	count := api.traceFilterCount
 	if req.Count != nil {
-		count = *req.Count
+		if api.traceFilterCount > *req.Count {
+			count = *req.Count
+		} else {
+			log.Info("trace_filter count is too big!")
+		}
 	}
 	after := uint64(0) // this just makes it easier to use below
 	if req.After != nil {
@@ -119,74 +190,16 @@ func (api *TraceAPI) Filter(ctx context.Context, req *types.TraceFilterRequest) 
 				if nSeen > after && nExported < count {
 					nExported++
 
-					blockTxs := block.Transactions()
-					blockHash := block.Hash()
-					txHash := tx.TxHash
 					var txPosition uint64 = 0
+					blockTxs := block.Transactions()
+					txHash := tx.TxHash
 					for k := 0; k < blockTxs.Len(); k++ {
 						if blockTxs[k].Hash() == txHash {
 							txPosition = uint64(k)
 							break
 						}
 					}
-					subtraces := 0
-					for k := 0; k < len(tx.Actions); k++ {
-						if tx.Actions[k].Depth > action.Depth {
-							subtraces++
-						}
-					}
-					trace := types.ParityTrace{
-						BlockHash:           &blockHash,
-						BlockNumber:         &blockNumber,
-						Error:               action.Error,
-						Subtraces:           subtraces,
-						TraceAddress:        action.TraceAddress,
-						TransactionHash:     &txHash,
-						TransactionPosition: &txPosition,
-					}
-
-					value := (*hexutil.Big)(action.Value)
-					gas := (*hexutil.Big)(new(big.Int).SetUint64(action.Gas))
-					gasUsed := (*hexutil.Big)(new(big.Int).SetUint64(action.GasUsed))
-					if action.OpCode == "SELFDESTRUCT" {
-						trace.Type = "suicide"
-						trace.Action = types.SuicideTraceAction{
-							Address:       action.From,
-							RefundAddress: action.To,
-							Balance:       *value,
-						}
-						trace.Result = types.TraceResult{
-							GasUsed: gasUsed,
-							Output:  action.Output,
-						}
-					} else if action.OpCode == "CREATE" || action.OpCode == "CREATE2" {
-						trace.Type = "create"
-						trace.Action = types.CreateTraceAction{
-							From:  action.From,
-							Gas:   *gas,
-							Init:  action.Input,
-							Value: *value,
-						}
-						trace.Result = types.CreateTraceResult{
-							Address: &action.CreateAddress,
-							Code:    action.Output,
-							GasUsed: gasUsed,
-						}
-					} else {
-						trace.Type = "call"
-						trace.Action = types.CallTraceAction{
-							From:     action.From,
-							CallType: strings.ToLower(action.OpCode),
-							Gas:      *gas,
-							Input:    action.Input,
-							To:       action.To,
-							Value:    *value,
-						}
-						trace.Result = types.TraceResult{
-							GasUsed: gasUsed,
-							Output:  action.Output,
-						}
-					}
+					trace := make_trace(block, tx, txPosition, action)
 					traces = append(traces, trace)
 				}
 
@@ -197,6 +210,71 @@ func (api *TraceAPI) Filter(ctx context.Context, req *types.TraceFilterRequest) 
 		}
 	}
 	return traces, nil
+}
+
+func make_trace(block *types.Block, tx *types.InternalTx, txPosition uint64, action *types.Action) types.ParityTrace {
+	subtraces := 0
+	for k := 0; k < len(tx.Actions); k++ {
+		if tx.Actions[k].Depth > action.Depth {
+			subtraces++
+		}
+	}
+	blockNumber := block.NumberU64()
+	blockHash := block.Hash()
+	txHash := tx.TxHash
+	trace := types.ParityTrace{
+		BlockHash:           &blockHash,
+		BlockNumber:         &blockNumber,
+		Error:               action.Error,
+		Subtraces:           subtraces,
+		TraceAddress:        action.TraceAddress,
+		TransactionHash:     &txHash,
+		TransactionPosition: &txPosition,
+	}
+
+	value := (*hexutil.Big)(action.Value)
+	gas := (*hexutil.Big)(new(big.Int).SetUint64(action.Gas))
+	gasUsed := (*hexutil.Big)(new(big.Int).SetUint64(action.GasUsed))
+	if action.OpCode == "SELFDESTRUCT" {
+		trace.Type = "suicide"
+		trace.Action = types.SuicideTraceAction{
+			Address:       action.From,
+			RefundAddress: action.To,
+			Balance:       *value,
+		}
+		trace.Result = types.TraceResult{
+			GasUsed: gasUsed,
+			Output:  action.Output,
+		}
+	} else if action.OpCode == "CREATE" || action.OpCode == "CREATE2" {
+		trace.Type = "create"
+		trace.Action = types.CreateTraceAction{
+			From:  action.From,
+			Gas:   *gas,
+			Init:  action.Input,
+			Value: *value,
+		}
+		trace.Result = types.CreateTraceResult{
+			Address: &action.CreateAddress,
+			Code:    action.Output,
+			GasUsed: gasUsed,
+		}
+	} else {
+		trace.Type = "call"
+		trace.Action = types.CallTraceAction{
+			From:     action.From,
+			CallType: strings.ToLower(action.OpCode),
+			Gas:      *gas,
+			Input:    action.Input,
+			To:       action.To,
+			Value:    *value,
+		}
+		trace.Result = types.TraceResult{
+			GasUsed: gasUsed,
+			Output:  action.Output,
+		}
+	}
+	return trace
 }
 
 // TraceAPIs return the collection of RPC services the tracer package offers.
