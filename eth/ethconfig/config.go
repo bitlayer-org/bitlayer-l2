@@ -68,6 +68,7 @@ var Defaults = Config{
 	RPCEVMTimeout:      5 * time.Second,
 	GPO:                FullNodeGPO,
 	RPCTxFeeCap:        1, // 1 ether
+	TraceFilterCount:   8192,
 }
 
 //go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go
@@ -166,6 +167,8 @@ type Config struct {
 
 	// Enable record action trace
 	TraceAction int `toml:",omitempty"`
+
+	TraceFilterCount uint64 `toml:",omitempty"`
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain config.
