@@ -69,7 +69,6 @@ func TestInternalTx(t *testing.T) {
 		err = rlp.DecodeBytes(la, &dat)
 		if err != nil {
 			t.Errorf("rlp.decode try action %s", err.Error())
-
 		}
 	}
 	var dal Action
