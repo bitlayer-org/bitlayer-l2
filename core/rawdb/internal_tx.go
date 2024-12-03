@@ -46,8 +46,9 @@ func ReadInternalTxs(db ethdb.Reader, hash common.Hash, number uint64) []*types.
 		err = rlp.DecodeBytes(data, &resultLegacy)
 		if err != nil {
 			log.Error("Decode data error try legacy ", "err", err)
+		} else {
+			return types.NewInternalTxsByLegacy(resultLegacy)
 		}
-		return types.NewInternalTxsByLegacy(resultLegacy)
 	}
 
 	return result
