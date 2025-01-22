@@ -105,6 +105,7 @@ var (
 // BlockChain defines the minimal set of methods needed to back a tx pool with
 // a chain. Exists to allow mocking the live chain out of tests.
 type BlockChain interface {
+	core.ChainContext
 	// Config retrieves the chain's fork configuration.
 	Config() *params.ChainConfig
 
@@ -134,6 +135,8 @@ type Config struct {
 	GlobalQueue  uint64 // Maximum number of non-executable transaction slots for all accounts
 
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
+
+	DiscountContract string
 }
 
 // DefaultConfig contains the default configurations for the transaction pool.
@@ -150,6 +153,8 @@ var DefaultConfig = Config{
 	GlobalQueue:  1024,
 
 	Lifetime: 3 * time.Hour,
+
+	DiscountContract: "0x0000000000000000000000000000000000000000",
 }
 
 // sanitize checks the provided user configurations and changes anything that's
@@ -230,6 +235,8 @@ type LegacyPool struct {
 	initDoneCh      chan struct{}  // is closed once the pool is initialized (for tests)
 
 	changesSinceReorg int // A counter for how many drops we've performed in-between reorg.
+
+	discounts *txpool.Discounts
 }
 
 type txpoolResetRequest struct {
@@ -258,6 +265,7 @@ func New(config Config, chain BlockChain) *LegacyPool {
 		reorgDoneCh:     make(chan chan struct{}),
 		reorgShutdownCh: make(chan struct{}),
 		initDoneCh:      make(chan struct{}),
+		discounts:       txpool.NewDiscounts(nil, nil),
 	}
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
@@ -269,6 +277,7 @@ func New(config Config, chain BlockChain) *LegacyPool {
 	if !config.NoLocals && config.Journal != "" {
 		pool.journal = newTxJournal(config.Journal)
 	}
+	log.Info("legacy pool discount contract ", config.DiscountContract)
 	return pool
 }
 
@@ -307,6 +316,19 @@ func (pool *LegacyPool) Init(gasTip *big.Int, head *types.Header, reserve txpool
 	pool.currentHead.Store(head)
 	pool.currentState = statedb
 	pool.pendingNonces = newNoncer(statedb)
+
+	discounts, err := txpool.GetDiscounts(&txpool.CallContext{
+		Statedb:      pool.currentState,
+		Header:       pool.currentHead.Load(),
+		ChainContext: pool.chain,
+		ChainConfig:  pool.chainconfig},
+		common.HexToAddress(pool.config.DiscountContract),
+	)
+	if err == nil {
+		pool.discounts = discounts
+	} else {
+		log.Error("legacy pool init error ", err)
+	}
 
 	// Start the reorg loop early, so it can handle requests generated during
 	// journal loading.
@@ -532,7 +554,7 @@ func (pool *LegacyPool) Pending(enforceTips bool) map[common.Address][]*txpool.L
 		// If the miner requests tip enforcement, cap the lists now
 		if enforceTips && !pool.locals.contains(addr) {
 			for i, tx := range txs {
-				if tx.EffectiveGasTipIntCmp(pool.gasTip.Load(), pool.priced.urgent.baseFee) < 0 {
+				if tx.EffectiveGasTipIntCmp(pool.discounts.GetTip(tx.To(), pool.gasTip.Load()), pool.priced.urgent.baseFee) < 0 {
 					txs = txs[:i]
 					break
 				}
@@ -594,7 +616,7 @@ func (pool *LegacyPool) validateTxBasics(tx *types.Transaction, local bool) erro
 			1<<types.AccessListTxType |
 			1<<types.DynamicFeeTxType,
 		MaxSize: txMaxSize,
-		MinTip:  pool.gasTip.Load(),
+		MinTip:  pool.discounts.GetTip(tx.To(), pool.gasTip.Load()),
 	}
 	if local {
 		opts.MinTip = new(big.Int)
@@ -1412,6 +1434,19 @@ func (pool *LegacyPool) reset(oldHead, newHead *types.Header) {
 	pool.currentHead.Store(newHead)
 	pool.currentState = statedb
 	pool.pendingNonces = newNoncer(statedb)
+
+	discounts, err := txpool.GetDiscounts(&txpool.CallContext{
+		Statedb:      pool.currentState,
+		Header:       pool.currentHead.Load(),
+		ChainContext: pool.chain,
+		ChainConfig:  pool.chainconfig},
+		common.HexToAddress(pool.config.DiscountContract),
+	)
+	if err == nil {
+		pool.discounts = discounts
+	} else {
+		log.Error("Failed to GetDiscounts", "err", err)
+	}
 
 	// Inject any transactions discarded due to reorgs
 	log.Debug("Reinjecting stale transactions", "count", len(reinject))

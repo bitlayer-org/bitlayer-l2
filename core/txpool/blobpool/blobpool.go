@@ -315,6 +315,9 @@ type BlobPool struct {
 	insertFeed   event.Feed // Event feed to send out new tx events on pool inclusion (reorg included)
 
 	lock sync.RWMutex // Mutex protecting the pool during reorg handling
+
+	chainconfig *params.ChainConfig
+	discounts   *txpool.Discounts
 }
 
 // New creates a new blob transaction pool to gather, sort and filter inbound
@@ -325,12 +328,14 @@ func New(config Config, chain BlockChain) *BlobPool {
 
 	// Create the transaction pool with its initial settings
 	return &BlobPool{
-		config: config,
-		signer: types.LatestSigner(chain.Config()),
-		chain:  chain,
-		lookup: make(map[common.Hash]uint64),
-		index:  make(map[common.Address][]*blobTxMeta),
-		spent:  make(map[common.Address]*uint256.Int),
+		config:      config,
+		signer:      types.LatestSigner(chain.Config()),
+		chain:       chain,
+		lookup:      make(map[common.Hash]uint64),
+		index:       make(map[common.Address][]*blobTxMeta),
+		spent:       make(map[common.Address]*uint256.Int),
+		chainconfig: chain.Config(),
+		discounts:   txpool.NewDiscounts(nil, nil),
 	}
 }
 
@@ -370,6 +375,19 @@ func (p *BlobPool) Init(gasTip *big.Int, head *types.Header, reserve txpool.Addr
 		return err
 	}
 	p.head, p.state = head, state
+
+	discounts, err := txpool.GetDiscounts(&txpool.CallContext{
+		Statedb:      p.state,
+		Header:       p.head,
+		ChainContext: p.chain,
+		ChainConfig:  p.chainconfig},
+		common.HexToAddress(p.config.DiscountContract),
+	)
+	if err == nil {
+		p.discounts = discounts
+	} else {
+		log.Error("blob pool init error ", err)
+	}
 
 	// Index all transactions on disk and delete anything inprocessable
 	var fails []uint64
@@ -757,6 +775,17 @@ func (p *BlobPool) Reset(oldHead, newHead *types.Header) {
 	p.head = newHead
 	p.state = statedb
 
+	discounts, err := txpool.GetDiscounts(&txpool.CallContext{
+		Statedb:      p.state,
+		Header:       p.head,
+		ChainContext: p.chain,
+		ChainConfig:  p.chainconfig},
+		common.HexToAddress(p.config.DiscountContract),
+	)
+	if err == nil {
+		p.discounts = discounts
+	}
+
 	// Run the reorg between the old and new head and figure out which accounts
 	// need to be rechecked and which transactions need to be readded
 	if reinject, inclusions := p.reorg(oldHead, newHead); reinject != nil {
@@ -1043,7 +1072,7 @@ func (p *BlobPool) validateTx(tx *types.Transaction) error {
 		Config:  p.chain.Config(),
 		Accept:  1 << types.BlobTxType,
 		MaxSize: txMaxSize,
-		MinTip:  p.gasTip.ToBig(),
+		MinTip:  p.discounts.GetTip(tx.To(), p.gasTip.ToBig()),
 	}
 	if err := txpool.ValidateTransaction(tx, p.head, p.signer, baseOpts); err != nil {
 		return err

@@ -18,6 +18,7 @@ package blobpool
 
 import (
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
@@ -26,6 +27,7 @@ import (
 // BlockChain defines the minimal set of methods needed to back a blob pool with
 // a chain. Exists to allow mocking the live chain out of tests.
 type BlockChain interface {
+	core.ChainContext
 	// Config retrieves the chain's fork configuration.
 	Config() *params.ChainConfig
 

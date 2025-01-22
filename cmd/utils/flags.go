@@ -320,6 +320,12 @@ var (
 		Value:    ethconfig.Defaults.TxPool.PriceLimit,
 		Category: flags.TxPoolCategory,
 	}
+	TxPoolDiscountContractFlag = &cli.StringFlag{
+		Name:     "txpool.discountcontract",
+		Usage:    "Discount Contract Address",
+		Value:    ethconfig.Defaults.TxPool.DiscountContract,
+		Category: flags.TxPoolCategory,
+	}
 	TxPoolPriceBumpFlag = &cli.Uint64Flag{
 		Name:     "txpool.pricebump",
 		Usage:    "Price bump percentage to replace an already existing transaction",
@@ -1533,6 +1539,9 @@ func setTxPool(ctx *cli.Context, cfg *legacypool.Config) {
 	if ctx.IsSet(TxPoolLifetimeFlag.Name) {
 		cfg.Lifetime = ctx.Duration(TxPoolLifetimeFlag.Name)
 	}
+	if ctx.IsSet(TxPoolDiscountContractFlag.Name) {
+		cfg.DiscountContract = ctx.String(TxPoolDiscountContractFlag.Name)
+	}
 }
 
 func setMiner(ctx *cli.Context, cfg *miner.Config) {
@@ -1638,6 +1647,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	setEtherbase(ctx, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
+	cfg.BlobPool.DiscountContract = cfg.TxPool.DiscountContract
 	setMiner(ctx, &cfg.Miner)
 	setRequiredBlocks(ctx, cfg)
 	setLes(ctx, cfg)
