@@ -82,7 +82,7 @@ func (b *BlockGen) SetDifficulty(diff *big.Int) {
 	b.header.Difficulty = diff
 }
 
-// SetPos makes the header a PoS-header (0 difficulty)
+// SetPoS makes the header a PoS-header (0 difficulty)
 func (b *BlockGen) SetPoS() {
 	b.header.Difficulty = new(big.Int)
 }
@@ -480,7 +480,7 @@ func makeBlockChain(chainConfig *params.ChainConfig, parent *types.Block, n int,
 	return blocks
 }
 
-// makeBlockChain creates a deterministic chain of blocks from genesis
+// makeBlockChainWithGenesis creates a deterministic chain of blocks from genesis
 func makeBlockChainWithGenesis(genesis *Genesis, n int, engine consensus.Engine, seed int) (ethdb.Database, []*types.Block) {
 	db, blocks, _ := GenerateChainWithGenesis(genesis, engine, n, func(i int, b *BlockGen) {
 		b.SetCoinbase(common.Address{0: byte(seed), 19: byte(i)})
