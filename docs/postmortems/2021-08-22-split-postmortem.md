@@ -128,8 +128,8 @@ Action point: enable push-based alerts to be sent from the forkmon, to speed up 
 
 ## Links
 
-- [1] https://twitter.com/go_ethereum/status/1428051458763763721
-- [2] https://twitter.com/mhswende/status/1431259601530458112
+- [1] https://x.com/go_ethereum/status/1428051458763763721
+- [2] https://x.com/mhswende/status/1431259601530458112
 
 
 ## Appendix
@@ -147,7 +147,7 @@ recommend downstream/dependent projects to be ready to take actions to
 upgrade to the latest go-ethereum codebase. More information about the
 issue will be disclosed at a later date.
 
-https://twitter.com/go_ethereum/status/1428051458763763721
+https://x.com/go_ethereum/status/1428051458763763721
 
 ```
 ### Patch
