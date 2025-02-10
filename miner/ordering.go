@@ -80,10 +80,26 @@ func (s *txByPriceAndTime) Pop() interface{} {
 	return x
 }
 
+type transactionsByPriceAndNonce interface {
+	Peek() *txpool.LazyTransaction
+	Shift()
+	Pop()
+}
+
+func NewTransactionsByPriceAndNonce(policy uint8, signer types.Signer, txs map[common.Address][]*txpool.LazyTransaction, baseFee *big.Int, tip *big.Int) transactionsByPriceAndNonce {
+	if policy == 1 {
+		return newTransactionsByPriceAndNonceAndDiscount(signer, txs, baseFee, tip)
+	} else if policy == 2 {
+		return newTransactionsByPriceAndNonceAndPoll(signer, txs, baseFee)
+	} else {
+		return newTransactionsByPriceAndNonceLegacy(signer, txs, baseFee)
+	}
+}
+
 // transactionsByPriceAndNonce represents a set of transactions that can return
 // transactions in a profit-maximizing sorted order, while supporting removing
 // entire batches of transactions for non-executable accounts.
-type transactionsByPriceAndNonce struct {
+type transactionsByPriceAndNonceLegacy struct {
 	txs     map[common.Address][]*txpool.LazyTransaction // Per account nonce-sorted list of transactions
 	heads   txByPriceAndTime                             // Next transaction for each unique account (price heap)
 	signer  types.Signer                                 // Signer for the set of transactions
@@ -95,7 +111,7 @@ type transactionsByPriceAndNonce struct {
 //
 // Note, the input map is reowned so the caller should not interact any more with
 // if after providing it to the constructor.
-func newTransactionsByPriceAndNonce(signer types.Signer, txs map[common.Address][]*txpool.LazyTransaction, baseFee *big.Int) *transactionsByPriceAndNonce {
+func newTransactionsByPriceAndNonceLegacy(signer types.Signer, txs map[common.Address][]*txpool.LazyTransaction, baseFee *big.Int) *transactionsByPriceAndNonceLegacy {
 	// Initialize a price and received time based heap with the head transactions
 	heads := make(txByPriceAndTime, 0, len(txs))
 	for from, accTxs := range txs {
@@ -110,7 +126,7 @@ func newTransactionsByPriceAndNonce(signer types.Signer, txs map[common.Address]
 	heap.Init(&heads)
 
 	// Assemble and return the transaction set
-	return &transactionsByPriceAndNonce{
+	return &transactionsByPriceAndNonceLegacy{
 		txs:     txs,
 		heads:   heads,
 		signer:  signer,
@@ -119,7 +135,7 @@ func newTransactionsByPriceAndNonce(signer types.Signer, txs map[common.Address]
 }
 
 // Peek returns the next transaction by price.
-func (t *transactionsByPriceAndNonce) Peek() *txpool.LazyTransaction {
+func (t *transactionsByPriceAndNonceLegacy) Peek() *txpool.LazyTransaction {
 	if len(t.heads) == 0 {
 		return nil
 	}
@@ -127,7 +143,7 @@ func (t *transactionsByPriceAndNonce) Peek() *txpool.LazyTransaction {
 }
 
 // Shift replaces the current best head with the next one from the same account.
-func (t *transactionsByPriceAndNonce) Shift() {
+func (t *transactionsByPriceAndNonceLegacy) Shift() {
 	acc := t.heads[0].from
 	if txs, ok := t.txs[acc]; ok && len(txs) > 0 {
 		if wrapped, err := newTxWithMinerFee(txs[0], acc, t.baseFee); err == nil {
@@ -142,6 +158,209 @@ func (t *transactionsByPriceAndNonce) Shift() {
 // Pop removes the best transaction, *not* replacing it with the next one from
 // the same account. This should be used when a transaction cannot be executed
 // and hence all subsequent ones should be discarded from the same account.
-func (t *transactionsByPriceAndNonce) Pop() {
+func (t *transactionsByPriceAndNonceLegacy) Pop() {
 	heap.Pop(&t.heads)
+}
+
+// transactionsByPriceAndNonce represents a set of transactions that can return
+// transactions in a profit-maximizing sorted order, while supporting removing
+// entire batches of transactions for non-executable accounts.
+type transactionsByPriceAndNonceAndPoll struct {
+	txs     map[common.Address][]*txpool.LazyTransaction // Per account nonce-sorted list of transactions
+	heads   txByPriceAndTime                             // Next transaction for each unique account (price heap)
+	signer  types.Signer                                 // Signer for the set of transactions
+	baseFee *big.Int                                     // Current base fee
+}
+
+// newTransactionsByPriceAndNonce creates a transaction set that can retrieve
+// price sorted transactions in a nonce-honouring way.
+//
+// Note, the input map is reowned so the caller should not interact any more with
+// if after providing it to the constructor.
+func newTransactionsByPriceAndNonceAndPoll(signer types.Signer, txs map[common.Address][]*txpool.LazyTransaction, baseFee *big.Int) *transactionsByPriceAndNonceAndPoll {
+	// Initialize a price and received time based heap with the head transactions
+	heads := make(txByPriceAndTime, 0, len(txs))
+	for from, accTxs := range txs {
+		wrapped, err := newTxWithMinerFee(accTxs[0], from, baseFee)
+		if err != nil {
+			delete(txs, from)
+			continue
+		}
+		heads = append(heads, wrapped)
+		txs[from] = accTxs[1:]
+	}
+	// heap.Init(&heads)
+
+	// Assemble and return the transaction set
+	return &transactionsByPriceAndNonceAndPoll{
+		txs:     txs,
+		heads:   heads,
+		signer:  signer,
+		baseFee: baseFee,
+	}
+}
+
+// Peek returns the next transaction by price.
+func (t *transactionsByPriceAndNonceAndPoll) Peek() *txpool.LazyTransaction {
+	if len(t.heads) == 0 {
+		return nil
+	}
+	return t.heads[0].tx
+}
+
+// Shift replaces the current best head with the next one from the same account.
+func (t *transactionsByPriceAndNonceAndPoll) Shift() {
+	acc := t.heads[0].from
+	if txs, ok := t.txs[acc]; ok && len(txs) > 0 {
+		if wrapped, err := newTxWithMinerFee(txs[0], acc, t.baseFee); err == nil {
+			// t.heads[0], t.txs[acc] = wrapped, txs[1:]
+			// heap.Fix(&t.heads, 0)
+			// return
+			t.txs[acc] = txs[1:]
+			t.heads = append(t.heads, wrapped)
+			t.heads = t.heads[1:]
+			return
+		}
+	}
+	// heap.Pop(&t.heads)
+	t.Pop()
+}
+
+// Pop removes the best transaction, *not* replacing it with the next one from
+// the same account. This should be used when a transaction cannot be executed
+// and hence all subsequent ones should be discarded from the same account.
+func (t *transactionsByPriceAndNonceAndPoll) Pop() {
+	// heap.Pop(&t.heads)
+	if len(t.heads) > 0 {
+		t.heads = t.heads[1:]
+	}
+}
+
+// transactionsByPriceAndNonce represents a set of transactions that can return
+// transactions in a profit-maximizing sorted order, while supporting removing
+// entire batches of transactions for non-executable accounts.
+type transactionsByPriceAndNoncAndDiscount struct {
+	txs            map[common.Address][]*txpool.LazyTransaction // Per account nonce-sorted list of transactions
+	heads          txByPriceAndTime                             // Next transaction for each unique account (price heap)
+	heads_discount txByPriceAndTime
+	signer         types.Signer // Signer for the set of transactions
+	baseFee        *big.Int     // Current base fee
+	is_heads       bool
+	tip            *big.Int
+}
+
+// newTransactionsByPriceAndNonce creates a transaction set that can retrieve
+// price sorted transactions in a nonce-honouring way.
+//
+// Note, the input map is reowned so the caller should not interact any more with
+// if after providing it to the constructor.
+func newTransactionsByPriceAndNonceAndDiscount(signer types.Signer, txs map[common.Address][]*txpool.LazyTransaction, baseFee *big.Int, tip *big.Int) *transactionsByPriceAndNoncAndDiscount {
+	// Initialize a price and received time based heap with the head transactions
+	heads := make(txByPriceAndTime, 0)
+	heads_discount := make(txByPriceAndTime, 0)
+
+	for from, accTxs := range txs {
+		wrapped, err := newTxWithMinerFee(accTxs[0], from, baseFee)
+		if err != nil {
+			delete(txs, from)
+			continue
+		}
+		// heads = append(heads, wrapped)
+		if wrapped.fees.Cmp(tip) >= 0 { // wrapped.fee >= tip
+			heads = append(heads, wrapped)
+		} else {
+			heads_discount = append(heads_discount, wrapped)
+		}
+		txs[from] = accTxs[1:]
+	}
+
+	heap.Init(&heads)
+	heap.Init(&heads_discount)
+
+	is_heads := true
+	if len(heads) > 0 {
+		is_heads = true
+	} else {
+		if len(heads_discount) > 0 {
+			is_heads = false
+		}
+	}
+
+	// Assemble and return the transaction set
+	return &transactionsByPriceAndNoncAndDiscount{
+		txs:            txs,
+		heads:          heads,
+		heads_discount: heads_discount,
+		signer:         signer,
+		baseFee:        baseFee,
+		is_heads:       is_heads,
+		tip:            tip,
+	}
+}
+
+// Peek returns the next transaction by price.
+func (t *transactionsByPriceAndNoncAndDiscount) Peek() *txpool.LazyTransaction {
+	// if len(t.heads) == 0 {
+	// 	return nil
+	// }
+	// return t.heads[0].tx
+	if len(t.heads) == 0 && len(t.heads_discount) == 0 {
+		return nil
+	}
+	if t.is_heads {
+		if len(t.heads) == 0 {
+			t.is_heads = false
+		}
+	} else {
+		if len(t.heads_discount) == 0 {
+			t.is_heads = true
+		}
+	}
+
+	if t.is_heads {
+		return t.heads[0].tx
+	} else {
+		return t.heads_discount[0].tx
+	}
+}
+
+// Shift replaces the current best head with the next one from the same account.
+func (t *transactionsByPriceAndNoncAndDiscount) Shift() {
+	// acc := t.heads[0].from
+	var acc common.Address
+	if t.is_heads {
+		acc = t.heads[0].from
+	} else {
+		acc = t.heads_discount[0].from
+	}
+	if txs, ok := t.txs[acc]; ok && len(txs) > 0 {
+		if wrapped, err := newTxWithMinerFee(txs[0], acc, t.baseFee); err == nil {
+			// t.heads[0], t.txs[acc] = wrapped, txs[1:]
+			// heap.Fix(&t.heads, 0)
+			// return
+			t.txs[acc] = txs[1:]
+			t.Pop()
+			if wrapped.fees.Cmp(t.tip) >= 0 { // wrapped.fee >= tip
+				heap.Push(&t.heads, wrapped)
+			} else {
+				heap.Push(&t.heads_discount, wrapped)
+			}
+			return
+		}
+	}
+	// heap.Pop(&t.heads)
+	t.Pop()
+}
+
+// Pop removes the best transaction, *not* replacing it with the next one from
+// the same account. This should be used when a transaction cannot be executed
+// and hence all subsequent ones should be discarded from the same account.
+func (t *transactionsByPriceAndNoncAndDiscount) Pop() {
+	// heap.Pop(&t.heads)
+	if t.is_heads {
+		heap.Pop(&t.heads)
+	} else {
+		heap.Pop(&t.heads_discount)
+	}
+	t.is_heads = !t.is_heads
 }

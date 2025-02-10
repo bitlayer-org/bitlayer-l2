@@ -70,8 +70,9 @@ type TxPool struct {
 	reservations map[common.Address]SubPool // Map with the account to pool reservations
 	reserveLock  sync.Mutex                 // Lock protecting the account reservations
 
-	subs event.SubscriptionScope // Subscription scope to unsubscribe all on shutdown
-	quit chan chan error         // Quit channel to tear down the head updater
+	subs   event.SubscriptionScope // Subscription scope to unsubscribe all on shutdown
+	quit   chan chan error         // Quit channel to tear down the head updater
+	gasTip *big.Int
 }
 
 // New creates a new transaction pool to gather, sort and filter inbound
@@ -86,6 +87,7 @@ func New(gasTip *big.Int, chain BlockChain, subpools []SubPool) (*TxPool, error)
 		subpools:     subpools,
 		reservations: make(map[common.Address]SubPool),
 		quit:         make(chan chan error),
+		gasTip:       gasTip,
 	}
 	for i, subpool := range subpools {
 		if err := subpool.Init(gasTip, head, pool.reserver(i, subpool)); err != nil {
@@ -234,9 +236,14 @@ func (p *TxPool) loop(head *types.Header, chain BlockChain) {
 // SetGasTip updates the minimum gas tip required by the transaction pool for a
 // new transaction, and drops all transactions below this threshold.
 func (p *TxPool) SetGasTip(tip *big.Int) {
+	p.gasTip = tip
 	for _, subpool := range p.subpools {
 		subpool.SetGasTip(tip)
 	}
+}
+
+func (p *TxPool) GetGasTip() *big.Int {
+	return p.gasTip
 }
 
 // Has returns an indicator whether the pool has a transaction cached with the
