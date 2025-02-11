@@ -87,9 +87,9 @@ type transactionsByPriceAndNonce interface {
 }
 
 func NewTransactionsByPriceAndNonce(policy uint8, signer types.Signer, txs map[common.Address][]*txpool.LazyTransaction, baseFee *big.Int, tip *big.Int) transactionsByPriceAndNonce {
-	if policy == 1 {
+	if policy == 0 {
 		return newTransactionsByPriceAndNonceAndDiscount(signer, txs, baseFee, tip)
-	} else if policy == 2 {
+	} else if policy == 1 {
 		return newTransactionsByPriceAndNonceAndPoll(signer, txs, baseFee)
 	} else {
 		return newTransactionsByPriceAndNonceLegacy(signer, txs, baseFee)
