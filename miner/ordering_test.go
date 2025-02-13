@@ -299,16 +299,16 @@ func testTransactionPriceNonceSortPoll(t *testing.T, baseFee *big.Int) {
 	for i := 0; i < 25; i++ {
 		fromi, _ := types.Sender(signer, txs[i])
 		for j := 0; j < 25; j++ {
-			frome, _ := types.Sender(signer, txs[j*25+i])
-			if fromi != frome {
+			fromexpected, _ := types.Sender(signer, txs[j*25+i])
+			if fromi != fromexpected {
 				t.Errorf(" from[%d] != from[%d*25+%d]", i, j, i)
 			}
 		}
 
 		fromi2, _ := types.Sender(signer, txs[i*25])
 		for k := 1; k < 25; k++ {
-			frome2, _ := types.Sender(signer, txs[i*25+k])
-			if fromi2 == frome2 {
+			fromexpected, _ := types.Sender(signer, txs[i*25+k])
+			if fromi2 == fromexpected {
 				t.Errorf(" from[i] == from[i+k]")
 			}
 		}
