@@ -274,7 +274,7 @@ func testTransactionPriceNonceSortPoll(t *testing.T, baseFee *big.Int) {
 	}
 	// Sort the transactions and cross check the nonce ordering
 	// txset := newTransactionsByPriceAndNonceAndPoll(signer, groups, baseFee)
-	txset := NewTransactionsByPriceAndNonce(2, signer, groups, baseFee, nil)
+	txset := NewTransactionsByPriceAndNonce(1, signer, groups, baseFee, nil)
 
 	txs := types.Transactions{}
 	for tx := txset.Peek(); tx != nil; tx = txset.Peek() {
