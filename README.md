@@ -61,6 +61,7 @@ included in our repository in the `COPYING` file.
 ## Interact With Us On Social Media
 
 - Website: <https://bitlayer.org>
+- Discord: <https://discord.com/invite/bitlayer>
 - X (formerly Twitter): <https://x.com/BitlayerLabs>
 - Medium: <https://medium.com/@Bitlayer>
 - Email: <build@bitlayer.org>
