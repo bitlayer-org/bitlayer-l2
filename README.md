@@ -1,9 +1,9 @@
 # Bitlayer Overview
 
-[Bitlayer](https://www.bitlayer.org) is the first Bitcoin security-equivalent layer 2 based on BitVM. It consists an EVM compatible chain/sequencer(bitlayer-l2) that can map BTC ecological assets and facilitate the entry of BTC users. Bitlayer-l2 is a fork of [geth](https://github.com/ethereum/go-ethereum).
+[Bitlayer](https://www.bitlayer.org) is the first Bitcoin security-equivalent layer 2 based on BitVM. It consists of an EVM compatible chain/sequencer (bitlayer-l2) that can map BTC ecological assets and facilitate the entry of BTC users. Bitlayer-l2 is a fork of [geth](https://github.com/ethereum/go-ethereum).
 
-## Bitlayer’s Value Propositions
-Due to the technical nature of Bitcoin, there exists a trade-off between "Security and Turing completeness" for Bitcoin layer2 solutions.
+## Why Bitlayer?
+Due to the technical nature of Bitcoin, there exists a trade-off between "Security and Turing completeness" for Bitcoin layer 2 solutions.
 
 Bitlayer aims to resolve this dilemma and realize a Bitcoin layer 2 that is equally secure as Bitcoin and Turing complete through cryptographic innovations and blockchain protocol engineering. This is intended to ultimately foster a prosperous Bitcoin ecosystem.
 
@@ -14,14 +14,16 @@ Bitlayer's core objective is to address the trade-off between security (trustles
 2. State transitions using a Turing-complete L2 virtual machine
 3. L1 verification of the validity of L2 state transitions
 
-Bitlayer innovatively utilizes the DLC/LN protocol to enable trustless bidirectional flow of signals/assets. It introduces VMs (EVM, SolanaVM, MoveVM, etc.) to support a wide range of state transition expressions.
+### Key Components:
+- Utilization of DLC/LN protocol for trustless bidirectional flow of signals/assets
+- Support for various VMs (EVM, SolanaVM, MoveVM)
+- Optimistic rollup for scalability
 
 ## Architecture
 
 ![arch](./architecture.png)
 
-Bitlayer subscribes to the typical model of an Optimistic Rollup equivalent.
-
+Bitlayer follows the typical model of an Optimistic Rollup.
 
 ## Roadmap
 
@@ -31,37 +33,44 @@ Bitlayer-l2 is the geth client in MAINNET-V1.
 
 ## Building the source
 
-Building `geth` requires both a Go (version 1.21 or later) and a C compiler. You can install
-them using your favourite package manager. Once the dependencies are installed, run
+Building `geth` requires both a Go (version 1.21 or later) and a C compiler. After installing the dependencies, run:
 
 ```shell
 make geth
 ```
 
-or, to build the full suite of utilities:
+To build the full suite of utilities:
 
 ```shell
 make all
 ```
 
+## System Requirements
+- OS: Linux, macOS, Windows
+- RAM: Minimum 8GB
+- CPU: 4+ cores
+- Storage: SSD with minimum 100GB free space
+
 ## Documentation
 
-- The official documentation for the Bitlayer can be found [here](https://docs.bitlayer.org). It contains all the conceptual and architectural details of the chain along with operational guide for users running the nodes.
+The official documentation for Bitlayer can be found [here](https://docs.bitlayer.org). It contains all the conceptual and architectural details of the chain along with operational guides for users running the nodes.
 
 ## License
 
 The go-ethereum library (i.e. all code outside of the `cmd` directory) is licensed under the
-[GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.en.html),
-also included in our repository in the `COPYING.LESSER` file.
+[GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.en.html).
 
 The go-ethereum binaries (i.e. all code inside of the `cmd` directory) are licensed under the
-[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html), also
-included in our repository in the `COPYING` file.
+[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
-## Interact With Us On Social Media
+## Social Media & Contacts
 
-- Website: <https://bitlayer.org>
-- X (formerly Twitter): <https://x.com/BitlayerLabs>
-- Medium: <https://medium.com/@Bitlayer>
-- Email: <build@bitlayer.org>
-- GitHub: <https://github.com/bitlayer-org>
+- 🌐 Website: <https://bitlayer.org>
+- 🐦 X (Twitter): <https://x.com/BitlayerLabs>
+- 📝 Medium: <https://medium.com/@Bitlayer>
+- 📧 Email: <build@bitlayer.org>
+- 💻 GitHub: <https://github.com/bitlayer-org>
+
+## Join Our Community
+- [Discord](https://discord.gg/bitlayer)
+- [Telegram](https://t.me/bitlayer)
