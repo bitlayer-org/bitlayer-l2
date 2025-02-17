@@ -53,6 +53,7 @@ type Config struct {
 	Recommit  time.Duration  // The time interval for miner to re-create mining work.
 
 	NewPayloadTimeout time.Duration // The maximum time allowance for creating a new payload
+	TxSortPolicy      uint8
 }
 
 // DefaultConfig contains default settings for miner.
@@ -66,6 +67,7 @@ var DefaultConfig = Config{
 	// run 3 rounds.
 	Recommit:          2 * time.Second,
 	NewPayloadTimeout: 2 * time.Second,
+	TxSortPolicy:      0,
 }
 
 // Miner creates blocks and searches for proof-of-work values.

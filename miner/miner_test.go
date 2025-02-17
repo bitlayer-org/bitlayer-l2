@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/clique"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -69,6 +70,14 @@ type testBlockChain struct {
 	statedb       *state.StateDB
 	gasLimit      uint64
 	chainHeadFeed *event.Feed
+}
+
+func (bc *testBlockChain) Engine() consensus.Engine {
+	return nil
+}
+
+func (bc *testBlockChain) GetHeader(common.Hash, uint64) *types.Header {
+	return nil
 }
 
 func (bc *testBlockChain) Config() *params.ChainConfig {
