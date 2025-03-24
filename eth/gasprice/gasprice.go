@@ -228,6 +228,9 @@ func (oracle *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 			price = new(big.Int).Set(oracle.priceLimit)
 		}
 	}
+	if price.Cmp(oracle.priceLimit) < 0 {
+		price = new(big.Int).Set(oracle.priceLimit)
+	}
 	if price.Cmp(oracle.maxPrice) > 0 {
 		price = new(big.Int).Set(oracle.maxPrice)
 	}

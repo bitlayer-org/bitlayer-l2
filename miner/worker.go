@@ -553,7 +553,7 @@ func (w *worker) mainLoop() {
 					})
 				}
 				// txset := newTransactionsByPriceAndNonce(w.current.signer, txs, w.current.header.BaseFee)
-				log.Info("NewTransactionsByPriceAndNonce policy ", w.config.TxSortPolicy, " mintip ", w.eth.TxPool().GetGasTip())
+				log.Debug("NewTransactionsByPriceAndNonce policy", "TxSortPolicy", w.config.TxSortPolicy, "mintip", w.eth.TxPool().GetGasTip())
 				txset := NewTransactionsByPriceAndNonce(w.config.TxSortPolicy, w.current.signer, txs, w.current.header.BaseFee, w.eth.TxPool().GetGasTip())
 				tcount := w.current.tcount
 				w.commitTransactions(w.current, txset, nil)
@@ -1001,7 +1001,7 @@ func (w *worker) fillTransactions(interrupt *atomic.Int32, env *environment) err
 	// Fill the block with all available pending transactions.
 	if len(localTxs) > 0 {
 		// txs := newTransactionsByPriceAndNonce(env.signer, localTxs, env.header.BaseFee)
-		log.Info("NewTransactionsByPriceAndNonce local policy ", w.config.TxSortPolicy, " mintip ", w.eth.TxPool().GetGasTip())
+		log.Debug("NewTransactionsByPriceAndNonce local policy", "policy", w.config.TxSortPolicy, "mintip", w.eth.TxPool().GetGasTip())
 		txs := NewTransactionsByPriceAndNonce(w.config.TxSortPolicy, env.signer, localTxs, env.header.BaseFee, w.eth.TxPool().GetGasTip())
 		if err := w.commitTransactions(env, txs, interrupt); err != nil {
 			return err
@@ -1009,7 +1009,7 @@ func (w *worker) fillTransactions(interrupt *atomic.Int32, env *environment) err
 	}
 	if len(remoteTxs) > 0 {
 		// txs := newTransactionsByPriceAndNonce(env.signer, remoteTxs, env.header.BaseFee)
-		log.Info("NewTransactionsByPriceAndNonce remote policy ", w.config.TxSortPolicy, " mintip ", w.eth.TxPool().GetGasTip())
+		log.Debug("NewTransactionsByPriceAndNonce remote policy", "policy", w.config.TxSortPolicy, "mintip", w.eth.TxPool().GetGasTip())
 		txs := NewTransactionsByPriceAndNonce(w.config.TxSortPolicy, env.signer, remoteTxs, env.header.BaseFee, w.eth.TxPool().GetGasTip())
 		if err := w.commitTransactions(env, txs, interrupt); err != nil {
 			return err

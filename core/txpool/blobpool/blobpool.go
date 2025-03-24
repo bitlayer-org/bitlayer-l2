@@ -376,8 +376,16 @@ func (p *BlobPool) Init(gasTip *big.Int, head *types.Header, reserve txpool.Addr
 	}
 	p.head, p.state = head, state
 
+	discountsState, err := p.chain.StateAt(head.Root)
+	if err != nil {
+		discountsState, err = p.chain.StateAt(types.EmptyRootHash)
+	}
+	if err != nil {
+		return err
+	}
+
 	discounts, err := txpool.GetDiscounts(&txpool.CallContext{
-		Statedb:      p.state,
+		Statedb:      discountsState,
 		Header:       p.head,
 		ChainContext: p.chain,
 		ChainConfig:  p.chainconfig},
@@ -775,8 +783,13 @@ func (p *BlobPool) Reset(oldHead, newHead *types.Header) {
 	p.head = newHead
 	p.state = statedb
 
+	discountsState, err := p.chain.StateAt(newHead.Root)
+	if err != nil {
+		log.Error("Failed to reset blobpool state", "err", err)
+		return
+	}
 	discounts, err := txpool.GetDiscounts(&txpool.CallContext{
-		Statedb:      p.state,
+		Statedb:      discountsState,
 		Header:       p.head,
 		ChainContext: p.chain,
 		ChainConfig:  p.chainconfig},
@@ -784,6 +797,8 @@ func (p *BlobPool) Reset(oldHead, newHead *types.Header) {
 	)
 	if err == nil {
 		p.discounts = discounts
+	} else {
+		log.Error("blob pool init error ", err)
 	}
 
 	// Run the reorg between the old and new head and figure out which accounts
