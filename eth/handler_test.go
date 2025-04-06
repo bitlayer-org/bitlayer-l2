@@ -50,8 +50,9 @@ var (
 type testTxPool struct {
 	pool map[common.Hash]*types.Transaction // Hash map of collected transactions
 
-	txFeed event.Feed   // Notification feed to allow waiting for inclusion
-	lock   sync.RWMutex // Protects the transaction pool
+	txFeed            event.Feed   // Notification feed to allow waiting for inclusion
+	rebroadcastTxFeed event.Feed   // Notification feed to allow waiting for inclusion
+	lock              sync.RWMutex // Protects the transaction pool
 }
 
 // newTestTxPool creates a mock transaction pool.
@@ -125,6 +126,24 @@ func (p *testTxPool) Pending(enforceTips bool) map[common.Address][]*txpool.Lazy
 // send events to the given channel.
 func (p *testTxPool) SubscribeTransactions(ch chan<- core.NewTxsEvent, reorgs bool) event.Subscription {
 	return p.txFeed.Subscribe(ch)
+}
+
+// SubscribeReannoTxsEvent should return an event subscription of ReannoTxsEvent and
+// send events to the given channel.
+func (p *testTxPool) SubscribeRebroadcastTxsEvent(ch chan<- core.RebroadcastTxsEvent) event.Subscription {
+	return p.rebroadcastTxFeed.Subscribe(ch)
+}
+
+// RebroadcastTransactions announce the transactions to some peers.
+func (p *testTxPool) RebroadcastTransactions(txs []*types.Transaction) []error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	for _, tx := range txs {
+		p.pool[tx.Hash()] = tx
+	}
+	p.rebroadcastTxFeed.Send(core.RebroadcastTxsEvent{Txs: txs})
+	return make([]error, len(txs))
 }
 
 // testHandler is a live implementation of the Ethereum protocol handler, just
