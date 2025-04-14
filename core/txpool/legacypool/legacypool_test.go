@@ -378,7 +378,7 @@ func TestQueue(t *testing.T) {
 	testAddBalance(pool, from, big.NewInt(1000))
 	<-pool.requestReset(nil, nil)
 
-	pool.enqueueTx(tx.Hash(), tx, false, true)
+	pool.enqueueTx(tx.Hash(), tx, false, true, false)
 	<-pool.requestPromoteExecutables(newAccountSet(pool.signer, from))
 	if len(pool.pending) != 1 {
 		t.Error("expected valid txs to be 1 is", len(pool.pending))
@@ -387,7 +387,7 @@ func TestQueue(t *testing.T) {
 	tx = transaction(1, 100, key)
 	from, _ = deriveSender(tx)
 	testSetNonce(pool, from, 2)
-	pool.enqueueTx(tx.Hash(), tx, false, true)
+	pool.enqueueTx(tx.Hash(), tx, false, true, false)
 
 	<-pool.requestPromoteExecutables(newAccountSet(pool.signer, from))
 	if _, ok := pool.pending[from].txs.items[tx.Nonce()]; ok {
@@ -411,9 +411,9 @@ func TestQueue2(t *testing.T) {
 	testAddBalance(pool, from, big.NewInt(1000))
 	pool.reset(nil, nil)
 
-	pool.enqueueTx(tx1.Hash(), tx1, false, true)
-	pool.enqueueTx(tx2.Hash(), tx2, false, true)
-	pool.enqueueTx(tx3.Hash(), tx3, false, true)
+	pool.enqueueTx(tx1.Hash(), tx1, false, true, false)
+	pool.enqueueTx(tx2.Hash(), tx2, false, true, false)
+	pool.enqueueTx(tx3.Hash(), tx3, false, true, false)
 
 	pool.promoteExecutables([]common.Address{from})
 	if len(pool.pending) != 1 {
@@ -488,14 +488,14 @@ func TestChainFork(t *testing.T) {
 	resetState()
 
 	tx := transaction(0, 100000, key)
-	if _, err := pool.add(tx, false); err != nil {
+	if _, err := pool.add(tx, false, false); err != nil {
 		t.Error("didn't expect error", err)
 	}
 	pool.removeTx(tx.Hash(), true, true)
 
 	// reset the pool's internal state
 	resetState()
-	if _, err := pool.add(tx, false); err != nil {
+	if _, err := pool.add(tx, false, false); err != nil {
 		t.Error("didn't expect error", err)
 	}
 }
@@ -522,10 +522,10 @@ func TestDoubleNonce(t *testing.T) {
 	tx3, _ := types.SignTx(types.NewTransaction(0, common.Address{}, big.NewInt(100), 1000000, big.NewInt(1), nil), signer, key)
 
 	// Add the first two transaction, ensure higher priced stays only
-	if replace, err := pool.add(tx1, false); err != nil || replace {
+	if replace, err := pool.add(tx1, false, false); err != nil || replace {
 		t.Errorf("first transaction insert failed (%v) or reported replacement (%v)", err, replace)
 	}
-	if replace, err := pool.add(tx2, false); err != nil || !replace {
+	if replace, err := pool.add(tx2, false, false); err != nil || !replace {
 		t.Errorf("second transaction insert failed (%v) or not reported replacement (%v)", err, replace)
 	}
 	<-pool.requestPromoteExecutables(newAccountSet(signer, addr))
@@ -537,7 +537,7 @@ func TestDoubleNonce(t *testing.T) {
 	}
 
 	// Add the third transaction and ensure it's not saved (smaller price)
-	pool.add(tx3, false)
+	pool.add(tx3, false, false)
 	<-pool.requestPromoteExecutables(newAccountSet(signer, addr))
 	if pool.pending[addr].Len() != 1 {
 		t.Error("expected 1 pending transactions, got", pool.pending[addr].Len())
@@ -560,7 +560,7 @@ func TestMissingNonce(t *testing.T) {
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 	testAddBalance(pool, addr, big.NewInt(100000000000000))
 	tx := transaction(1, 100000, key)
-	if _, err := pool.add(tx, false); err != nil {
+	if _, err := pool.add(tx, false, false); err != nil {
 		t.Error("didn't expect error", err)
 	}
 	if len(pool.pending) != 0 {
@@ -619,21 +619,21 @@ func TestDropping(t *testing.T) {
 		tx11 = transaction(11, 200, key)
 		tx12 = transaction(12, 300, key)
 	)
-	pool.all.Add(tx0, false)
+	pool.all.Add(tx0, false, false)
 	pool.priced.Put(tx0, false)
 	pool.promoteTx(account, tx0.Hash(), tx0)
 
-	pool.all.Add(tx1, false)
+	pool.all.Add(tx1, false, false)
 	pool.priced.Put(tx1, false)
 	pool.promoteTx(account, tx1.Hash(), tx1)
 
-	pool.all.Add(tx2, false)
+	pool.all.Add(tx2, false, false)
 	pool.priced.Put(tx2, false)
 	pool.promoteTx(account, tx2.Hash(), tx2)
 
-	pool.enqueueTx(tx10.Hash(), tx10, false, true)
-	pool.enqueueTx(tx11.Hash(), tx11, false, true)
-	pool.enqueueTx(tx12.Hash(), tx12, false, true)
+	pool.enqueueTx(tx10.Hash(), tx10, false, true, false)
+	pool.enqueueTx(tx11.Hash(), tx11, false, true, false)
+	pool.enqueueTx(tx12.Hash(), tx12, false, true, false)
 
 	// Check that pre and post validations leave the pool as is
 	if pool.pending[account].Len() != 3 {
@@ -2583,7 +2583,7 @@ func benchmarkFuturePromotion(b *testing.B, size int) {
 
 	for i := 0; i < size; i++ {
 		tx := transaction(uint64(1+i), 100000, key)
-		pool.enqueueTx(tx.Hash(), tx, false, true)
+		pool.enqueueTx(tx.Hash(), tx, false, true, false)
 	}
 	// Benchmark the speed of pool validation
 	b.ResetTimer()
@@ -2680,5 +2680,46 @@ func BenchmarkMultiAccountBatchInsert(b *testing.B) {
 	b.ResetTimer()
 	for _, tx := range batches {
 		pool.addRemotesSync([]*types.Transaction{tx})
+	}
+}
+
+// Tests the local pending transaction broadcast again correctly.
+func TestTransactionPendingRebroadcast(t *testing.T) {
+	t.Parallel()
+
+	// Create the pool to test the status retrievals with
+	statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	blockchain := newTestBlockChain(params.TestChainConfig, 1000000, statedb, new(event.Feed))
+
+	config := testTxPoolConfig
+	config.RebroadcastTxTime = time.Second
+	rebroadcastInterval = time.Second
+	config.NoLocals = true
+
+	pool := New(config, blockchain)
+	pool.Init(new(big.Int).SetUint64(config.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
+
+	defer pool.Close()
+
+	key, _ := crypto.GenerateKey()
+	account := crypto.PubkeyToAddress(key.PublicKey)
+	pool.currentState.AddBalance(account, big.NewInt(1000000))
+
+	events := make(chan core.RebroadcastTxsEvent, testTxPoolConfig.AccountQueue)
+	sub := pool.rebroadcastTxFeed.Subscribe(events)
+	defer sub.Unsubscribe()
+
+	// Generate a batch of transactions and add to tx_pool locally.
+	txs := make([]*types.Transaction, 0, testTxPoolConfig.AccountQueue)
+	for i := uint64(0); i < testTxPoolConfig.AccountQueue; i++ {
+		txs = append(txs, transaction(i, 100000, key))
+	}
+	pool.Add(txs, true, true)
+
+	select {
+	case ev := <-events:
+		t.Logf("received rebroadcast event, txs length: %d", len(ev.Txs))
+	case <-time.After(5 * time.Second):
+		t.Errorf("rebroadcast event not fired")
 	}
 }

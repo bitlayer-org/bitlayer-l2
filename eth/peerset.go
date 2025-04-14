@@ -258,3 +258,19 @@ func (ps *peerSet) close() {
 	}
 	ps.closed = true
 }
+
+// headPeers retrieves a specified number list of peers.
+func (ps *peerSet) headPeers(num uint) []*ethPeer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	if num > uint(len(ps.peers)) {
+		num = uint(len(ps.peers))
+	}
+
+	list := make([]*ethPeer, 0, num)
+	for _, p := range ps.peers {
+		list = append(list, p)
+	}
+	return list
+}

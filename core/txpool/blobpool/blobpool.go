@@ -311,10 +311,10 @@ type BlobPool struct {
 	spent  map[common.Address]*uint256.Int  // Expenditure tracking for individual accounts
 	evict  *evictHeap                       // Heap of cheapest accounts for eviction when full
 
-	discoverFeed event.Feed // Event feed to send out new tx events on pool discovery (reorg excluded)
-	insertFeed   event.Feed // Event feed to send out new tx events on pool inclusion (reorg included)
-
-	lock sync.RWMutex // Mutex protecting the pool during reorg handling
+	discoverFeed      event.Feed // Event feed to send out new tx events on pool discovery (reorg excluded)
+	insertFeed        event.Feed // Event feed to send out new tx events on pool inclusion (reorg included)
+	rebroadcastTxFeed event.Feed
+	lock              sync.RWMutex // Mutex protecting the pool during reorg handling
 
 	chainconfig *params.ChainConfig
 	discounts   *txpool.Discounts
@@ -386,7 +386,7 @@ func (p *BlobPool) Init(gasTip *big.Int, head *types.Header, reserve txpool.Addr
 
 	discounts, err := txpool.GetDiscounts(&txpool.CallContext{
 		Statedb:      discountsState,
-		Header:       p.head,
+		Header:       head,
 		ChainContext: p.chain,
 		ChainConfig:  p.chainconfig},
 		common.HexToAddress(p.config.DiscountContract),
@@ -790,7 +790,7 @@ func (p *BlobPool) Reset(oldHead, newHead *types.Header) {
 	}
 	discounts, err := txpool.GetDiscounts(&txpool.CallContext{
 		Statedb:      discountsState,
-		Header:       p.head,
+		Header:       newHead,
 		ChainContext: p.chain,
 		ChainConfig:  p.chainconfig},
 		common.HexToAddress(p.config.DiscountContract),
@@ -1541,6 +1541,12 @@ func (p *BlobPool) SubscribeTransactions(ch chan<- core.NewTxsEvent, reorgs bool
 	} else {
 		return p.discoverFeed.Subscribe(ch)
 	}
+}
+
+// SubscribeReannoTxsEvent registers a subscription of ReannoTxsEvent and
+// starts sending event to the given channel.
+func (pool *BlobPool) SubscribeRebroadcastTxsEvent(ch chan<- core.RebroadcastTxsEvent) event.Subscription {
+	return pool.rebroadcastTxFeed.Subscribe(ch)
 }
 
 // Nonce returns the next nonce of an account, with all transactions executable

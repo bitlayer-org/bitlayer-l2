@@ -491,16 +491,15 @@ func testStatusFunctions(t *testing.T, client *rpc.Client) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if gasPrice.Cmp(big.NewInt(1000000000)) != 0 {
+	if gasPrice.Cmp(big.NewInt(30765625000)) != 0 {
 		t.Fatalf("unexpected gas price: %v", gasPrice)
 	}
-
 	// SuggestGasTipCap
 	gasTipCap, err := ec.SuggestGasTipCap(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if gasTipCap.Cmp(big.NewInt(234375000)) != 0 {
+	if gasTipCap.Cmp(big.NewInt(30000000000)) != 0 {
 		t.Fatalf("unexpected gas tip cap: %v", gasTipCap)
 	}
 
