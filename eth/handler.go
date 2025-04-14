@@ -18,9 +18,10 @@ package eth
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
-	"slices"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -721,9 +722,20 @@ func (h *handler) RebroadcastTransactions(txs types.Transactions) {
 		annos = make(map[*ethPeer][]common.Hash) // Set peer->hash to announce
 	)
 	// Broadcast transactions to a batch of peers not knowing about it
+
 	for _, tx := range txs {
+		peersWithoutTxList := ""
+		peersWithoutTx := h.peers.peersWithoutTransaction(tx.Hash())
+		for _, p := range peersWithoutTx {
+			peersWithoutTxList = fmt.Sprintf(" [%s %s %s] ", peersWithoutTxList, p.Peer.Info().Name, p.Peer.Info().Network.RemoteAddress)
+		}
+		log.Debug("p2p rebroadcast tx", "withoutcount", len(peersWithoutTx), "hash", tx.Hash(), "peersWithoutTxList", peersWithoutTxList)
+
 		peers := h.peers.headPeers(uint(h.peers.len()))
-		slices.Reverse(peers)
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		r.Shuffle(len(peers), func(i, j int) {
+			peers[i], peers[j] = peers[j], peers[i]
+		})
 
 		var numDirect int
 		switch {
@@ -737,10 +749,12 @@ func (h *handler) RebroadcastTransactions(txs types.Transactions) {
 		// Send the tx unconditionally to a subset of our peers
 		for _, peer := range peers[:numDirect] {
 			txset[peer] = append(txset[peer], tx.Hash())
+			log.Info("p2p rebroadcast tx", "hash", tx.Hash(), "PeerName", peer.Peer.Info().Name, "PeerAddr", peer.Peer.Info().Network.RemoteAddress)
 		}
 		// For the remaining peers, send announcement only
 		for _, peer := range peers[numDirect:] {
 			annos[peer] = append(annos[peer], tx.Hash())
+			log.Info("p2p rebroadcast annos tx", "hash", tx.Hash(), "PeerName", peer.Peer.Info().Name, "PeerAddr", peer.Peer.Info().Network.RemoteAddress)
 		}
 	}
 	for peer, hashes := range txset {

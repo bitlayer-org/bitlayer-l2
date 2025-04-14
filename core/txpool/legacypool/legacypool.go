@@ -53,7 +53,7 @@ const (
 	txMaxSize = 4 * txSlotSize // 128KB
 
 	// txRebroadcastMaxNum is the maximum number of transactions a rebroadcast action can include.
-	txRebroadcastMaxNum = 128
+	txRebroadcastMaxNum = 16
 )
 
 var (
@@ -65,7 +65,7 @@ var (
 var (
 	evictionInterval    = time.Minute     // Time interval to check for evictable transactions
 	statsReportInterval = 8 * time.Second // Time interval to report transaction pool stats
-	rebroadcastInterval = 3 * time.Second // Time interval to rebroadcast transactions
+	rebroadcastInterval = 3 * time.Second // Time interval to rebroadcast pending transactions
 )
 
 var (
@@ -459,7 +459,7 @@ func (pool *LegacyPool) loop() {
 			pool.mu.RUnlock()
 			if len(rebroadcastTxs) > 0 {
 				for _, tx := range rebroadcastTxs {
-					log.Info("rebroadcast tx", "tx", tx.Hash())
+					log.Info("txpool rebroadcast tx", "tx", tx.Hash())
 				}
 				pool.rebroadcastTxFeed.Send(core.RebroadcastTxsEvent{Txs: rebroadcastTxs})
 			}
@@ -1050,7 +1050,7 @@ func (pool *LegacyPool) Add(txs []*types.Transaction, local, sync bool) []error 
 		// If the transaction is known, pre-set the error slot
 		if pool.all.Get(tx.Hash()) != nil {
 			errs[i] = txpool.ErrAlreadyKnown
-			log.Info("Discarding ErrAlreadyKnown transaction", "hash", tx.Hash(), "local", localOri)
+			log.Debug("Discarding ErrAlreadyKnown transaction", "hash", tx.Hash(), "local", localOri)
 			knownTxMeter.Mark(1)
 			continue
 		}
