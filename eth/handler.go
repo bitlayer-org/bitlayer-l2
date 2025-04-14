@@ -18,7 +18,6 @@ package eth
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
@@ -724,12 +723,12 @@ func (h *handler) RebroadcastTransactions(txs types.Transactions) {
 	// Broadcast transactions to a batch of peers not knowing about it
 
 	for _, tx := range txs {
-		peersWithoutTxList := ""
-		peersWithoutTx := h.peers.peersWithoutTransaction(tx.Hash())
-		for _, p := range peersWithoutTx {
-			peersWithoutTxList = fmt.Sprintf(" [%s %s %s] ", peersWithoutTxList, p.Peer.Info().Name, p.Peer.Info().Network.RemoteAddress)
-		}
-		log.Debug("p2p rebroadcast tx", "withoutcount", len(peersWithoutTx), "hash", tx.Hash(), "peersWithoutTxList", peersWithoutTxList)
+		// peersWithoutTxList := ""
+		// peersWithoutTx := h.peers.peersWithoutTransaction(tx.Hash())
+		// for _, p := range peersWithoutTx {
+		// 	peersWithoutTxList = fmt.Sprintf(" [%s %s %s] ", peersWithoutTxList, p.Peer.Info().Name, p.Peer.Info().Network.RemoteAddress)
+		// }
+		// log.Debug("p2p rebroadcast tx", "withoutcount", len(peersWithoutTx), "hash", tx.Hash(), "peersWithoutTxList", peersWithoutTxList)
 
 		peers := h.peers.headPeers(uint(h.peers.len()))
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
