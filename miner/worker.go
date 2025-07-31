@@ -401,6 +401,7 @@ func recalcRecommit(minRecommit, prev time.Duration, target float64, inc bool) t
 	} else {
 		next = prevF*(1-intervalAdjustRatio) + intervalAdjustRatio*(target-intervalAdjustBias)
 		min := float64(minRecommit.Nanoseconds())
+		min = min + min*intervalAdjustRatio
 		if next < min {
 			next = min
 		}
