@@ -3,9 +3,10 @@ package metrics
 import (
 	"fmt"
 	"io"
-	"slices"
 	"strings"
 	"time"
+
+	"golang.org/x/exp/slices"
 )
 
 // Write sorts writes each metric in the given registry periodically to the

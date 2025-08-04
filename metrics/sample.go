@@ -3,9 +3,10 @@ package metrics
 import (
 	"math"
 	"math/rand"
-	"slices"
 	"sync"
 	"time"
+
+	"golang.org/x/exp/slices"
 )
 
 const rescaleThreshold = time.Hour
