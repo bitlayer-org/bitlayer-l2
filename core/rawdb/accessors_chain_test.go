@@ -228,7 +228,7 @@ func TestBadBlockStorage(t *testing.T) {
 		t.Fatalf("Failed to load all bad blocks")
 	}
 
-	// Write a bunch of bad blocks, all the blocks are should sorted
+	// Write a bunch of bad blocks, all the blocks should sorted
 	// in reverse order. The extra blocks should be truncated.
 	for _, n := range rand.Perm(100) {
 		block := types.NewBlockWithHeader(&types.Header{
