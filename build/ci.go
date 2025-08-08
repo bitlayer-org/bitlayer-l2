@@ -764,7 +764,7 @@ func downloadGoBootstrapSources(cachedir string) string {
 		log.Fatal(err)
 	}
 	file := fmt.Sprintf("go%s.src.tar.gz", gobootVersion)
-	url := "https://dl.google.com/go/" + file
+	url := "https://go.dev/dl/" + file
 	dst := filepath.Join(cachedir, file)
 	if err := csdb.DownloadFile(url, dst); err != nil {
 		log.Fatal(err)
@@ -780,7 +780,7 @@ func downloadGoSources(cachedir string) string {
 		log.Fatal(err)
 	}
 	file := fmt.Sprintf("go%s.src.tar.gz", dlgoVersion)
-	url := "https://dl.google.com/go/" + file
+	url := "https://go.dev/dl/" + file
 	dst := filepath.Join(cachedir, file)
 	if err := csdb.DownloadFile(url, dst); err != nil {
 		log.Fatal(err)
