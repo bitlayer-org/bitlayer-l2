@@ -65,7 +65,7 @@ The API-method `account_signGnosisSafeTx` was added. This method takes two param
 ```
 
 Not all fields are required, though. This method is really just a UX helper, which massages the 
-input to conform to the `EIP-712` [specification](https://docs.gnosis.io/safe/docs/contracts_tx_execution/#transaction-hash) 
+input to conform to the `EIP-712` [specification](https://docs.safe.global/reference-sdk-protocol-kit/transactions/gettransactionhash) 
 for the Gnosis Safe, and making the output be directly importable to by a relay service. 
 
 
